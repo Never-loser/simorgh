@@ -372,6 +372,45 @@ Fixing that leak is the prerequisite for any further tuning work. The next
 real step up in strength after that is a neural evaluation, which is a
 different project rather than another increment on this one.
 
+## Explaining a move
+
+Every strong engine tells you a position is worth +0.47. None of them can
+tell you *which* +0.47, because they evaluate with a neural network whose
+weights carry no human meaning. Simorgh's evaluation is hand-written, so it
+decomposes into named terms:
+
+```
+python python/explain.py --fen "8/5p2/4k3/8/2P5/1P6/P4PPP/4K3 w - - 0 1"
+```
+
+```
+  evaluation: +5.49 from White's point of view
+  phase:      endgame (0/24)   to move: white
+
+  reasons, largest first:
+     +5.00  pawn material  (6 v 1)
+     +0.80  passed pawns  (white: a2, h2, b3, c4)
+     -0.60  king placement
+     +0.15  pawn placement
+     +0.14  isolated pawns  (black: f7)
+```
+
+Drop `--english` for Persian. `--best` also searches and shows the move it
+would play.
+
+The engine side is the UCI command `explain`, which prints one
+machine-readable line per term so a front end can render it in any
+language. The decomposition is **exact**: the terms sum to exactly what
+`evaluate()` returns. That is not free -- tapering divides once at the end,
+so tapering each term separately truncates several times instead, and the
+few centipawns of difference are reported as their own `rounding` term
+rather than silently absorbed into a neighbour. An explanation that only
+roughly matches the number the engine searched on would be worse than none.
+
+`selftest.py` checks that on ~1,400 positions from random games: the terms
+must sum to the total, the total must equal `evaluate()`, and every term
+must fire somewhere in the corpus, so no term goes untested.
+
 ## Measuring strength
 
 Everything the project measures against itself is *relative*. For a number

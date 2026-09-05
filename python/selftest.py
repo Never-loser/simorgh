@@ -474,12 +474,110 @@ def test_pawn_structure() -> None:
           f"drop {drop}, rook is worth {rook_value}")
 
 
+# ==========================================================================
+# Explainable evaluation
+# ==========================================================================
+def parse_explain(block: list[str]) -> dict:
+    """Turn one `explain` response into {terms, white, score, actual}."""
+    out = {"terms": [], "white": None, "score": None, "actual": None,
+           "phase": None}
+    for line in block:
+        parts = line.split()
+        if not parts:
+            continue
+        if parts[0] == "explain":
+            out["phase"] = parts[2]
+        elif parts[0] == "term":
+            out["terms"].append((parts[1], int(parts[2])))
+        elif parts[0] in ("white", "score", "actual"):
+            out[parts[0]] = int(parts[1])
+    return out
+
+
+def test_explain() -> None:
+    """The breakdown must reconstruct evaluate() exactly, not approximately.
+
+    A decomposition that is merely close is worse than none: it reads as an
+    explanation while quietly disagreeing with the number the engine
+    actually searched on. So every position is checked twice -- the terms
+    must sum to the reported total, and that total must equal what
+    evaluate() returned for the same position.
+    """
+    from selfplay import Engine, find_engine  # noqa: E402
+
+    eng = Engine(find_engine(), own_book=False)
+    fens: list[str] = []
+    try:
+        import random
+        rng = random.Random(20260904)
+        for _ in range(40):
+            moves: list[str] = []
+            for _ply in range(random.Random(rng.random()).randint(4, 60)):
+                legal = eng.legal(moves)
+                if not legal:
+                    break
+                moves.append(rng.choice(legal))
+                fens.append(eng.fen(moves))
+    finally:
+        eng.quit()
+
+    # De-duplicate but keep enough breadth to hit every term.
+    fens = list(dict.fromkeys(fens))
+    cmds = []
+    for f in fens:
+        cmds += [f"position fen {f}", "explain"]
+    lines = talk(cmds).splitlines()
+
+    blocks: list[list[str]] = []
+    for line in lines:
+        if line.startswith("explain "):
+            blocks.append([])
+        if blocks:
+            blocks[-1].append(line)
+
+    check("explain answers every position",
+          len(blocks) == len(fens),
+          f"{len(blocks)} answers for {len(fens)} positions")
+    if len(blocks) != len(fens):
+        return
+
+    sum_bad = total_bad = sign_bad = 0
+    seen_terms: set[str] = set()
+    for fen, block in zip(fens, blocks):
+        b = parse_explain(block)
+        seen_terms.update(name for name, _ in b["terms"])
+        if sum(v for _, v in b["terms"]) != b["white"]:
+            sum_bad += 1
+        if b["score"] != b["actual"]:
+            total_bad += 1
+        # White's point of view, flipped for the side to move.
+        stm_black = fen.split()[1] == "b"
+        if b["score"] != (-b["white"] if stm_black else b["white"]):
+            sign_bad += 1
+
+    check(f"explain terms sum to the total ({len(fens)} positions)",
+          sum_bad == 0, f"{sum_bad} positions disagree")
+    check("explain total equals evaluate()", total_bad == 0,
+          f"{total_bad} positions disagree")
+    check("explain flips sign for the side to move", sign_bad == 0,
+          f"{sign_bad} positions disagree")
+
+    # A term that never fires is a term nobody has ever tested.
+    expected = {"material.pawn", "placement.pawn", "king.placement",
+                "pawns.passed", "pawns.isolated", "pawns.doubled",
+                "bishop.pair", "rounding"}
+    missing = expected - seen_terms
+    check("every eval term appears somewhere in the corpus",
+          not missing, f"never seen: {sorted(missing)}")
+
+
 def main() -> int:
     print(f"engine: {find_engine()}")
     test_perft()
     test_eval_symmetry()
     test_see()
     test_pawn_structure()
+    test_explain()
     test_book()
     test_weights_roundtrip()
     test_san_parser()

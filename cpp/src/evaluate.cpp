@@ -1,4 +1,5 @@
 #include "evaluate.h"
+#include "notation.h"
 #include "stats.h"
 
 #include <cstring>
@@ -148,10 +149,26 @@ struct PawnMaskInit {
     }
 } pawnMaskInit;
 
-// Returns the middlegame and endgame pawn-structure scores from White's
-// point of view.
-void pawn_structure(const Position& pos, int& mg, int& eg) {
-    mg = eg = 0;
+// Pawn structure, split into the three effects that make it up. Keeping
+// them separate here rather than accumulating one number is what lets
+// explain() name them; pawn_structure() below just sums them, so the two
+// views can never disagree about what the evaluation actually did.
+struct PawnTerms {
+    int passedMg = 0, passedEg = 0;
+    int isolatedMg = 0, isolatedEg = 0;
+    int doubledMg = 0, doubledEg = 0;
+    std::string passedOn, isolatedOn, doubledOn;
+};
+
+void append_square(std::string& list, Color c, Square s) {
+    if (!list.empty()) list += ' ';
+    list += (c == WHITE ? 'w' : 'b');
+    list += square_to_uci(s);
+}
+
+// From White's point of view. `detail` fills in the square lists, which is
+// wasted work during search and so is off by default.
+void pawn_structure_detail(const Position& pos, PawnTerms& t, bool detail) {
     for (Color c : {WHITE, BLACK}) {
         const int sign = c == WHITE ? 1 : -1;
         const Bitboard ours = pos.pieces(c, PAWN);
@@ -165,23 +182,40 @@ void pawn_structure(const Position& pos, int& mg, int& eg) {
             const int rank = c == WHITE ? (int(s) >> 3) : 7 - (int(s) >> 3);
 
             if (!(passedMask[c][s] & theirs)) {
-                mg += sign * PASSED_MG[rank];
-                eg += sign * PASSED_EG[rank];
+                t.passedMg += sign * PASSED_MG[rank];
+                t.passedEg += sign * PASSED_EG[rank];
+                if (detail) append_square(t.passedOn, c, s);
             }
             if (!(adjacentFiles[f] & ours)) {
-                mg -= sign * ISOLATED_PENALTY;
-                eg -= sign * ISOLATED_PENALTY;
+                t.isolatedMg -= sign * ISOLATED_PENALTY;
+                t.isolatedEg -= sign * ISOLATED_PENALTY;
+                if (detail) append_square(t.isolatedOn, c, s);
             }
         }
 
         for (int f = 0; f < 8; ++f) {
             const int count = popcount(ours & fileMask[f]);
             if (count > 1) {
-                mg -= sign * DOUBLED_PENALTY * (count - 1);
-                eg -= sign * DOUBLED_PENALTY * (count - 1);
+                t.doubledMg -= sign * DOUBLED_PENALTY * (count - 1);
+                t.doubledEg -= sign * DOUBLED_PENALTY * (count - 1);
+                if (detail) {
+                    if (!t.doubledOn.empty()) t.doubledOn += ' ';
+                    t.doubledOn += (c == WHITE ? 'w' : 'b');
+                    t.doubledOn += char('a' + f);
+                    if (count > 2) t.doubledOn += 'x' + std::to_string(count);
+                }
             }
         }
     }
+}
+
+// Returns the middlegame and endgame pawn-structure scores from White's
+// point of view.
+void pawn_structure(const Position& pos, int& mg, int& eg) {
+    PawnTerms t;
+    pawn_structure_detail(pos, t, false);
+    mg = t.passedMg + t.isolatedMg + t.doubledMg;
+    eg = t.passedEg + t.isolatedEg + t.doubledEg;
 }
 
 // ------------------------------------------------------------ live weights
@@ -368,4 +402,141 @@ int evaluate(const Position& pos) {
     score += (mgScore * phase + egScore * (PHASE_MAX - phase)) / PHASE_MAX;
 
     return pos.side_to_move() == WHITE ? score : -score;
+}
+
+namespace Eval {
+
+// Mirrors evaluate() term by term. Any change to evaluate() that is not
+// made here too will show up immediately as a nonzero mismatch in the
+// `evalexplain` self-test, which is the point of keeping the two adjacent.
+Breakdown explain(const Position& pos) {
+    ensure_defaults();
+
+    static const char* PIECE_NAME[5] = {
+        "pawn", "knight", "bishop", "rook", "queen"
+    };
+
+    Breakdown bd;
+    bd.phaseMax = PHASE_MAX;
+
+    // ---------------------------------------------------------- untapered
+    int phase = 0;
+    int material[5] = {0, 0, 0, 0, 0};
+    int placement[5] = {0, 0, 0, 0, 0};
+    int count[COLOR_NB][5] = {{0}};
+
+    for (Color c : {WHITE, BLACK}) {
+        const int sign = c == WHITE ? 1 : -1;
+        for (int pt = PAWN; pt <= QUEEN; ++pt) {
+            Bitboard b = pos.pieces(Color(c), PieceType(pt));
+            const int n = popcount(b);
+            count[c][pt] = n;
+            material[pt] += sign * MATERIAL_W[pt] * n;
+            while (b) placement[pt] += sign * piecePst[c][pt][pop_lsb(b)];
+
+            switch (pt) {
+                case KNIGHT: phase += PHASE_KNIGHT * n; break;
+                case BISHOP: phase += PHASE_BISHOP * n; break;
+                case ROOK:   phase += PHASE_ROOK * n;   break;
+                case QUEEN:  phase += PHASE_QUEEN * n;  break;
+                default: break;
+            }
+        }
+    }
+    if (phase > PHASE_MAX) phase = PHASE_MAX;
+    bd.phase = phase;
+
+    int untapered = 0;
+    auto flat = [&](const std::string& name, int v, const std::string& detail) {
+        untapered += v;
+        if (v == 0 && detail.empty()) return;  // silent when it says nothing
+        Term t;
+        t.name = name;
+        t.detail = detail;
+        t.value = v;
+        bd.terms.push_back(t);
+    };
+
+    for (int pt = PAWN; pt <= QUEEN; ++pt) {
+        std::string counts;
+        if (count[WHITE][pt] != count[BLACK][pt])
+            counts = std::to_string(count[WHITE][pt]) + "v" +
+                     std::to_string(count[BLACK][pt]);
+        flat(std::string("material.") + PIECE_NAME[pt], material[pt], counts);
+    }
+    for (int pt = PAWN; pt <= QUEEN; ++pt)
+        flat(std::string("placement.") + PIECE_NAME[pt], placement[pt], "");
+
+    // ------------------------------------------------------------ tapered
+    int kingMg = 0, kingEg = 0;
+    for (Color c : {WHITE, BLACK}) {
+        const int sign = c == WHITE ? 1 : -1;
+        const int visual = mirrored_index(c, pos.king_square(c));
+        kingMg += sign * PST_W[PST_KING_MG_I][visual];
+        kingEg += sign * PST_W[PST_KING_EG_I][visual];
+    }
+
+    PawnTerms pawns;
+    pawn_structure_detail(pos, pawns, true);
+
+    int pairMg = 0, pairEg = 0;
+    std::string pairOn;
+    for (Color c : {WHITE, BLACK}) {
+        if (popcount(pos.pieces(c, BISHOP)) >= 2) {
+            const int sign = c == WHITE ? 1 : -1;
+            pairMg += sign * BISHOP_PAIR_MG;
+            pairEg += sign * BISHOP_PAIR_EG;
+            if (!pairOn.empty()) pairOn += ' ';
+            pairOn += (c == WHITE ? "white" : "black");
+        }
+    }
+
+    auto taper = [&](int mg, int eg) {
+        return (mg * phase + eg * (PHASE_MAX - phase)) / PHASE_MAX;
+    };
+
+    int mgTotal = 0, egTotal = 0, taperedParts = 0;
+    auto blend = [&](const std::string& name, int mg, int eg,
+                     const std::string& detail) {
+        mgTotal += mg;
+        egTotal += eg;
+        const int v = taper(mg, eg);
+        taperedParts += v;
+        if (mg == 0 && eg == 0 && detail.empty()) return;
+        Term t;
+        t.name = name;
+        t.detail = detail;
+        t.mg = mg;
+        t.eg = eg;
+        t.value = v;
+        t.tapered = true;
+        bd.terms.push_back(t);
+    };
+
+    blend("king.placement", kingMg, kingEg, "");
+    blend("pawns.passed", pawns.passedMg, pawns.passedEg, pawns.passedOn);
+    blend("pawns.isolated", pawns.isolatedMg, pawns.isolatedEg,
+          pawns.isolatedOn);
+    blend("pawns.doubled", pawns.doubledMg, pawns.doubledEg, pawns.doubledOn);
+    blend("bishop.pair", pairMg, pairEg, pairOn);
+
+    // evaluate() tapers the *sum*, once. Tapering each term on its own and
+    // adding them up truncates several times instead, so the two differ by
+    // a few centipawns. Report that gap as its own term rather than
+    // quietly fudging a term to make the column add up.
+    const int taperedTotal = taper(mgTotal, egTotal);
+    const int residue = taperedTotal - taperedParts;
+    if (residue != 0) {
+        Term t;
+        t.name = "rounding";
+        t.detail = "tapering truncation";
+        t.value = residue;
+        bd.terms.push_back(t);
+    }
+
+    bd.white = untapered + taperedTotal;
+    bd.sideToMove = pos.side_to_move() == WHITE ? bd.white : -bd.white;
+    return bd;
+}
+
 }

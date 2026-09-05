@@ -23,6 +23,11 @@ import tkinter.font as tkfont
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "python"))
+
+# The term names and their translations live in explain.py, so adding an
+# evaluation term means editing one dictionary rather than two front ends.
+from explain import EN as TERMS_EN, FA as TERMS_FA, squares  # noqa: E402
 
 # --------------------------------------------------------------------- theme
 BG = "#0e1116"
@@ -58,6 +63,24 @@ STRENGTHS = [("Beginner (~800)", 800), ("Casual (~1000)", 1000),
              ("Full strength", None)]
 
 FILES = "abcdefgh"
+
+
+ZWNJ = chr(0x200C)
+
+
+def tk_rtl(text: str) -> str:
+    """Make a Persian string safe for Tk's bidi.
+
+    Tk shapes Arabic script correctly, but it treats a zero-width
+    non-joiner as a segment break and then reverses the pieces around it,
+    so a word spelled with one comes out inside out. The Unicode isolate
+    characters that would normally pin a run in place are not an option
+    either -- Tk draws them as empty boxes. Turning the joiner into an
+    ordinary space costs a little typographic polish and gets the reading
+    order right, which matters more. explain.py keeps the proper spelling
+    for the terminal, which handles it correctly.
+    """
+    return text.replace(ZWNJ, " ")
 
 
 def find_engine() -> str:
@@ -183,8 +206,22 @@ class EngineWorker(threading.Thread):
         parts = self._read_until("status").split()
         status = {parts[i]: parts[i + 1] for i in range(1, len(parts) - 1, 2)}
 
+        # The evaluation breakdown for the position now on the board. It
+        # rides along with the rest of the state so the explanation and the
+        # board can never be showing different positions, and it costs
+        # nothing: explain does no search.
+        self._send("explain")
+        explain = []
+        while True:
+            line = self._readline()
+            if not line and self.proc.poll() is not None:
+                break
+            explain.append(line.strip())
+            if line.startswith("actual"):
+                break
+
         self.out.put(("state", {"fen": fen, "legal": legal, "status": status,
-                                "moves": list(moves)}))
+                                "moves": list(moves), "explain": explain}))
 
     def _learn(self, moves, result: str) -> None:
         """Fold a finished game into the engine's opening book."""
@@ -212,7 +249,10 @@ class EngineWorker(threading.Thread):
 # Board rendering + interaction
 # ==========================================================================
 class SimorghGUI:
-    def __init__(self, root: tk.Tk, engine_path: str):
+    def __init__(self, root: tk.Tk, engine_path: str,
+                 persian: bool = False):
+        self.persian = persian
+        self.terms = TERMS_FA if persian else TERMS_EN
         self.root = root
         self.root.title("Simorgh")
         self.root.configure(bg=BG)
@@ -312,12 +352,44 @@ class SimorghGUI:
                                    font=(self.mono_font, 22, "bold"))
         self.eval_label.pack(anchor="w")
         self.depth_label = tk.Label(info, text="", bg=SURFACE, fg=FG_DIM,
-                                    font=(self.ui_font, 10))
+                                    font=(self.ui_font, 10), justify="left",
+                                    anchor="w")
         self.depth_label.pack(anchor="w")
         self.pv_label = tk.Label(info, text="", bg=SURFACE, fg=MUTED,
                                  font=(self.mono_font, 9), wraplength=250,
                                  justify="left", anchor="w")
         self.pv_label.pack(fill=tk.X, pady=(6, 0))
+
+        # ---- why the evaluation says what it says
+        why = tk.Frame(side, bg=SURFACE, padx=12, pady=12,
+                       highlightbackground=BORDER, highlightthickness=1)
+        why.pack(fill=tk.X, pady=(12, 0))
+        tk.Label(why, text="چرا" if self.persian else "WHY", bg=SURFACE,
+                 fg=MUTED, font=(self.ui_font, 9, "bold")).pack(anchor="w")
+        # One row per reason, and the number lives in its own widget. Tk
+        # shapes Persian correctly but reorders mixed runs, and it does not
+        # honour the Unicode isolate characters that would normally pin a
+        # number in place -- it draws them as empty boxes. Keeping each
+        # widget's text in a single direction sidesteps that entirely, and
+        # aligns the numbers into a column in English too.
+        self.why_body = tk.Frame(why, bg=SURFACE)
+        self.why_body.pack(fill=tk.X, pady=(4, 0))
+        self.why_body.columnconfigure(1, weight=1)
+        side_a = "e" if self.persian else "w"
+        self.why_rows = []
+        for r in range(5):
+            value = tk.Label(self.why_body, text="", bg=SURFACE, fg=FG_DIM,
+                             font=(self.mono_font, 9), anchor="e", width=6)
+            name = tk.Label(self.why_body, text="", bg=SURFACE, fg=FG_DIM,
+                            font=(self.ui_font, 9), anchor=side_a,
+                            justify="right" if self.persian else "left",
+                            wraplength=185)
+            value.grid(row=r, column=0, sticky="e", padx=(0, 8))
+            name.grid(row=r, column=1, sticky=side_a)
+            self.why_rows.append((value, name))
+        self.why_note = tk.Label(why, text="", bg=SURFACE, fg=MUTED,
+                                 font=(self.ui_font, 9), anchor=side_a)
+        self.why_note.pack(fill=tk.X)
 
         # ---- move list
         movebox = tk.Frame(side, bg=SURFACE, padx=12, pady=12,
@@ -325,7 +397,7 @@ class SimorghGUI:
         movebox.pack(fill=tk.BOTH, expand=True, pady=(12, 0))
         tk.Label(movebox, text="MOVES", bg=SURFACE, fg=MUTED,
                  font=(self.ui_font, 9, "bold")).pack(anchor="w")
-        self.move_text = tk.Text(movebox, height=8, width=28, bg=SURFACE_2,
+        self.move_text = tk.Text(movebox, height=6, width=28, bg=SURFACE_2,
                                  fg=FG_DIM, font=(self.mono_font, 10), bd=0,
                                  highlightthickness=0, state=tk.DISABLED,
                                  wrap="word", padx=8, pady=6)
@@ -597,6 +669,7 @@ class SimorghGUI:
         self.legal = payload["legal"]
         self.status = payload["status"]
         self._parse_fen(payload["fen"])
+        self._render_explain(payload.get("explain", []))
         self._render_moves()
         self.draw()
 
@@ -628,6 +701,49 @@ class SimorghGUI:
             self._set_status("Your move", FG_DIM)
 
         self._maybe_engine_move()
+
+    def _render_explain(self, lines: list[str]) -> None:
+        """Show the largest few reasons the evaluation reads as it does.
+
+        The engine hands back every term; the panel is small, so only the
+        ones big enough to matter are shown. Terms are from White's point
+        of view, which is also how the score above them is displayed, so
+        the signs agree.
+        """
+        terms, white = [], None
+        for line in lines:
+            p = line.split()
+            if not p:
+                continue
+            if p[0] == "term":
+                where = " ".join(p[p.index("on") + 1:]) if "on" in p else ""
+                terms.append((p[1], int(p[2]), where))
+            elif p[0] == "white":
+                white = int(p[1])
+
+        big = [] if white is None else sorted(
+            (t for t in terms if abs(t[1]) >= 5), key=lambda t: -abs(t[1]))[:5]
+
+        for i, (value_w, name_w) in enumerate(self.why_rows):
+            if i >= len(big):
+                value_w.config(text="")
+                name_w.config(text="")
+                continue
+            name, value, where = big[i]
+            value_w.config(text=f"{value / 100:+.2f}",
+                           fg=OK if value > 0 else DANGER)
+            label = self.terms.get(name, name)
+            if self.persian:
+                label = tk_rtl(label)
+            place = squares(where, self.persian)
+            name_w.config(text=f"{label} ({place})" if place else label)
+
+        if white is not None and not big:
+            self.why_note.config(
+                text="ÙÙØ§Ø²ÙÙ Ø¨Ø±ÙØ±Ø§Ø± Ø§Ø³Øª"
+                     if self.persian else "nothing decisive yet")
+        else:
+            self.why_note.config(text="")
 
     def _learn_game(self, result: str) -> None:
         """Send the finished game to the book, once per game."""
@@ -664,9 +780,22 @@ class SimorghGUI:
                 score = f"M{mate}"
 
         pv = " ".join(parts[parts.index("pv") + 1:]) if "pv" in parts else ""
-        detail = f"depth {depth}" if depth else ""
+        # "depth 13" means nothing to a player who has not written an
+        # engine. Say what it buys: how far ahead the engine is looking.
+        detail = ""
+        if depth:
+            full, half = divmod(depth, 2)
+            if half:
+                ahead = f"{full}.5" if self.persian else f"{full}½"
+            else:
+                ahead = str(full)
+            detail = (tk_rtl(f"عمق {depth} - {ahead} حرکت جلوتر را می‌بیند")
+                      if self.persian
+                      else f"depth {depth} - sees {ahead} moves ahead")
         if nps:
-            detail += f"   {nps // 1000}k nodes/s"
+            detail += ("\n" if detail else "")
+            detail += (f"{nps / 1e6:.1f}M پوزیشن در ثانیه" if self.persian
+                       else f"{nps / 1e6:.1f}M positions/second")
         self._set_eval(score or "--", detail, pv)
 
     def _on_bestmove(self, move: str) -> None:
@@ -739,10 +868,12 @@ class SimorghGUI:
 def main() -> None:
     ap = argparse.ArgumentParser(description="graphical front end for Simorgh")
     ap.add_argument("--engine", default=None, help="path to the binary")
+    ap.add_argument("--persian", action="store_true",
+                    help="label the explanation panel in Persian")
     args = ap.parse_args()
 
     root = tk.Tk()
-    SimorghGUI(root, args.engine or find_engine())
+    SimorghGUI(root, args.engine or find_engine(), args.persian)
     root.mainloop()
 
 

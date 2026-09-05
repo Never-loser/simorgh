@@ -380,6 +380,25 @@ void loop() {
             handle_bench(iss);
         } else if (cmd == "d") {
             print_position();
+        } else if (cmd == "explain") {
+            // Machine-readable on purpose: one term per line, so a front end
+            // can render it in any language without parsing prose. The
+            // engine states the numbers; python/explain.py turns them into
+            // Persian sentences.
+            const Eval::Breakdown bd = Eval::explain(pos);
+            std::cout << "explain phase " << bd.phase << '/' << bd.phaseMax
+                      << " stm " << (pos.side_to_move() == WHITE ? 'w' : 'b')
+                      << '\n';
+            for (const Eval::Term& t : bd.terms) {
+                std::cout << "term " << t.name << ' ' << t.value;
+                if (t.tapered)
+                    std::cout << " mg " << t.mg << " eg " << t.eg;
+                if (!t.detail.empty()) std::cout << " on " << t.detail;
+                std::cout << '\n';
+            }
+            std::cout << "white " << bd.white
+                      << "\nscore " << bd.sideToMove
+                      << "\nactual " << evaluate(pos) << std::endl;
         } else if (cmd == "legal") {
             MoveList ml;
             generate_moves(pos, ml);
