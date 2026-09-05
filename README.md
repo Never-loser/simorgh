@@ -18,6 +18,17 @@ of the game cannot drift apart.
 
 ---
 
+![Simorgh's GUI: the board, the engine's evaluation, and the terms behind it](docs/gui.png)
+
+The panel on the right is the part no other strong engine has. `+3.40` for
+the knights against `-3.75` for the bishops is the engine's own tuned
+opinion that a bishop is worth more than a knight, and below it the two
+halves of the Ruy Lopez Exchange trade-off it just made: Black holds the
+bishop pair, White gave it up to leave Black with doubled c-pawns.
+
+Run `python python/gui.py --persian` for the same panel in Persian.
+
+
 ## What this pass fixed
 
 ### The engine never moved
@@ -395,8 +406,9 @@ python python/explain.py --fen "8/5p2/4k3/8/2P5/1P6/P4PPP/4K3 w - - 0 1"
      +0.14  isolated pawns  (black: f7)
 ```
 
-Drop `--english` for Persian. `--best` also searches and shows the move it
-would play.
+Drop `--english` for Persian. `--best` also searches and shows the move
+it would play. The GUI shows the same breakdown live after every move
+([Persian](docs/gui-fa.png)).
 
 The engine side is the UCI command `explain`, which prints one
 machine-readable line per term so a front end can render it in any
