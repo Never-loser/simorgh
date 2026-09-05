@@ -519,3 +519,16 @@ python/
   oracle.py     independent Python move generator
   perft_check.py, diffwalk.py   movegen cross-checks
 ```
+
+## License
+
+Copyright (C) 2026 Never-loser
+
+Simorgh is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version. See [LICENSE](LICENSE) for the full text.
+
+The same licence most open-source engines use, Stockfish among them:
+anyone may take this code and build on it, provided what they publish
+stays open in turn.
