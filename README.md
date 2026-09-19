@@ -51,6 +51,19 @@ The app keeps the same discipline as the Tkinter GUI — it never implements che
 rules, only asks the engine — but the Rust backend owns the engine process and
 streams its output to the Vue front end. See [`gui/README.md`](gui/README.md).
 
+## Android app
+
+The same engine on a phone, in [`android/`](android/): Persian first, English
+one tap away, play as either colour, and the same panel that names every
+term behind the evaluation and checks they add up. The engine is not ported
+or wrapped — it is the identical C++ built for arm64 and run as a child
+process, and `bench 9` on a phone visits exactly the nodes the desktop does.
+
+**[Download the APK](https://github.com/Never-loser/simorgh/releases/latest)**
+· any 64-bit phone from Android 7 up. See [`android/README.md`](android/README.md)
+for how the binary gets in, what the phone measured, and why the thinking-time
+control is a set of uneven steps rather than a slider.
+
 
 ## What this pass fixed
 
@@ -556,6 +569,9 @@ python/
 gui/            Tauri 2 + Vue 3 desktop app (see gui/README.md)
   src/          Vue front end: board, pieces, evaluation panel
   src-tauri/    Rust backend that owns the engine process
+android/        Kotlin + Compose phone app (see android/README.md)
+  app/src/main/java/   Engine bridge, board, evaluation panel, game state
+  app/src/main/jniLibs/ the engine, built for arm64
 ```
 
 ## License
