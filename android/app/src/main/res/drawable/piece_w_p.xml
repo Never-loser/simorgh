@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from the desktop app's pieces.ts so both apps share one
+     piece set. Edit the source there, then regenerate. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="45dp" android:height="45dp"
+    android:viewportWidth="45" android:viewportHeight="45">
+    <path android:pathData="M9.50,39.50 a13.00,3.20 0 1,0 26.00,0 a13.00,3.20 0 1,0 -26.00,0 Z" android:fillColor="#47000000" />
+    <path android:pathData="M22.5 8.5c3.2 0 5.8 2.6 5.8 5.8 0 2.1-1.1 3.9-2.8 4.9 2.6 1.6 4.5 4.6 4.5 8.9 0 3-1 5.5-2.3 8.4h-10.4c-1.3-2.9-2.3-5.4-2.3-8.4 0-4.3 1.9-7.3 4.5-8.9-1.7-1-2.8-2.8-2.8-4.9 0-3.2 2.6-5.8 5.8-5.8z" android:fillColor="#F7FAFC"
+        android:strokeColor="#20262E" android:strokeWidth="1.3"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M12.5 36.5c0-2.5 4.5-3.5 10-3.5s10 1 10 3.5z" android:fillColor="#F7FAFC"
+        android:strokeColor="#20262E" android:strokeWidth="1.3"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

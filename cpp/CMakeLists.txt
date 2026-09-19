@@ -22,11 +22,17 @@ if(MSVC)
     target_compile_options(simorgh PRIVATE /O2 /EHsc)
 else()
     target_compile_options(simorgh PRIVATE -O2)
-    # Link the runtime statically. Without this the exe resolves
-    # libstdc++-6.dll from whatever happens to be first on PATH -- on a
-    # machine with Git for Windows installed that is Git's own MinGW
-    # runtime, and constructing an std::ifstream against the wrong one
-    # segfaults. It also makes the binary standalone, which an engine
-    # people copy around should be anyway.
-    target_link_options(simorgh PRIVATE -static -static-libgcc -static-libstdc++)
+    if(WIN32)
+        # Link the runtime statically. Without this the exe resolves
+        # libstdc++-6.dll from whatever happens to be first on PATH -- on a
+        # machine with Git for Windows installed that is Git's own MinGW
+        # runtime, and constructing an std::ifstream against the wrong one
+        # segfaults. It also makes the binary standalone, which an engine
+        # people copy around should be anyway.
+        #
+        # Windows only. This branch is "not MSVC", which also catches the
+        # Android NDK's clang, and -static there tries to link bionic
+        # statically -- which Android does not support.
+        target_link_options(simorgh PRIVATE -static -static-libgcc -static-libstdc++)
+    endif()
 endif()

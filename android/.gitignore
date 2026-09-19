@@ -1,0 +1,8 @@
+build/
+.gradle/
+local.properties
+*.apk
+*.aab
+.idea/
+# copied from ../data by the build; the originals are the source of truth
+app/src/main/assets/

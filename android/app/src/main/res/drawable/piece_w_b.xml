@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from the desktop app's pieces.ts so both apps share one
+     piece set. Edit the source there, then regenerate. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="45dp" android:height="45dp"
+    android:viewportWidth="45" android:viewportHeight="45">
+    <path android:pathData="M9.50,39.50 a13.00,3.20 0 1,0 26.00,0 a13.00,3.20 0 1,0 -26.00,0 Z" android:fillColor="#47000000" />
+    <path android:pathData="M20.10,7.00 a2.40,2.40 0 1,0 4.80,0 a2.40,2.40 0 1,0 -4.80,0 Z" android:fillColor="#F7FAFC"
+        android:strokeColor="#20262E" android:strokeWidth="1.3"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M22.5 9.2c4.6 0 7.7 4.1 7.7 8.4 0 2.4-1 4.4-2.6 6h-10.2c-1.6-1.6-2.6-3.6-2.6-6 0-4.3 3.1-8.4 7.7-8.4z" android:fillColor="#F7FAFC"
+        android:strokeColor="#20262E" android:strokeWidth="1.3"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M14.5 24.5h16c1.6 2.8 2.5 5.7 2.5 8.5-3.2 1.4-7 2-10.5 2s-7.3-.6-10.5-2c0-2.8.9-5.7 2.5-8.5z" android:fillColor="#F7FAFC"
+        android:strokeColor="#20262E" android:strokeWidth="1.3"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M22.5 12.5v9M18.5 17h8"
+        android:strokeColor="#20262E" android:strokeWidth="1.4"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

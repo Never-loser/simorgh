@@ -57,3 +57,6 @@ data/lichess_token.txt
 data/gm_positions.txt
 data/gm_quiet.txt
 data/weights.material.txt
+
+# Android NDK build
+cpp/build-android/
