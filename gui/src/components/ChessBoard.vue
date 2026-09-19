@@ -126,7 +126,10 @@ const promoPieces = computed(() =>
 </script>
 
 <template>
-  <div class="board-wrap">
+  <!-- A chessboard is not a text run: a1 stays bottom-left whatever the
+       interface language. Without this the grid inherits rtl from the app
+       and the whole board mirrors, king and queen swapped. -->
+  <div class="board-wrap" dir="ltr">
     <div class="board" :class="{ flip: orientation === 'b' }">
       <template v-for="r in 8" :key="r">
         <div
