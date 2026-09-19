@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Simorgh",
+  "version": "0.2.0",
+  "identifier": "com.simorgh.chess",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Simorgh — سیمرغ",
+        "width": 1200,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 640,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "resources": [
+      "resources/engine/simorgh.exe",
+      "resources/engine/data/book.txt",
+      "resources/engine/data/weights.txt"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "shortDescription": "The chess engine that explains its evaluation",
+    "longDescription": "Simorgh is a UCI chess engine whose hand-written evaluation decomposes into named terms, so it can tell you not just how good a position is, but why. This desktop app pairs the engine with a board that shows the evaluation breakdown in Persian and English."
+  }
+}

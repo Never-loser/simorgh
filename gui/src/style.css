@@ -1,0 +1,103 @@
+:root {
+  --bg: #0d1017;
+  --bg-2: #0a0d13;
+  --surface: #151a22;
+  --surface-2: #1b212b;
+  --surface-3: #222a35;
+  --border: #29323f;
+  --border-soft: #202834;
+  --accent: #6aa5ff;
+  --accent-dim: #2b4a7a;
+  --accent-glow: rgba(106, 165, 255, 0.25);
+  --fg: #eaf0f7;
+  --fg-dim: #a7b4c3;
+  --muted: #6b7a8c;
+  --ok: #56d364;
+  --warn: #e3b341;
+  --danger: #f2685c;
+  --white-side: #eef1f4;
+  --black-side: #63c187;
+
+  --light-sq: #b6c0cc;
+  --dark-sq: #55708c;
+  --sel: rgba(106, 165, 255, 0.55);
+  --last: rgba(227, 179, 65, 0.38);
+  --check: rgba(242, 104, 92, 0.75);
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.7);
+  --font: "Inter", "Vazirmatn", -apple-system, "Segoe UI", system-ui, sans-serif;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background:
+    radial-gradient(1200px 700px at 80% -10%, #17202c 0%, transparent 60%),
+    radial-gradient(1000px 600px at -10% 110%, #131a24 0%, transparent 55%),
+    var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+#app {
+  height: 100%;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 13px;
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+button:hover {
+  background: var(--surface-3);
+  border-color: #34404f;
+}
+button:active {
+  transform: translateY(1px);
+}
+button.primary {
+  background: linear-gradient(180deg, #4f8cf0, #3f76d6);
+  border-color: #5b93ef;
+  color: #fff;
+  font-weight: 600;
+}
+button.primary:hover {
+  background: linear-gradient(180deg, #5b96f3, #4680e0);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #29323f;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #34404f;
+  background-clip: padding-box;
+}

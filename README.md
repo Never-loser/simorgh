@@ -29,6 +29,29 @@ bishop pair, White gave it up to leave Black with doubled c-pawns.
 Run `python python/gui.py --persian` for the same panel in Persian.
 
 
+## Desktop app
+
+For a polished, installable version there is now a **Tauri 2 + Vue 3** desktop
+app in [`gui/`](gui/): the same engine, the same self-explaining evaluation, but
+with drag-and-drop, a live evaluation bar, adjustable opponent strength, and a
+bilingual (Persian / English, RTL) dark interface. The engine is bundled inside,
+so there is nothing to configure.
+
+**[Download the Windows installer](https://github.com/Never-loser/simorgh/releases/latest)**
+· or build it yourself:
+
+```bash
+cd gui
+npm install
+npm run bundle-engine     # builds the engine and copies it + data into the app
+npm run tauri build       # produces the setup .exe
+```
+
+The app keeps the same discipline as the Tkinter GUI — it never implements chess
+rules, only asks the engine — but the Rust backend owns the engine process and
+streams its output to the Vue front end. See [`gui/README.md`](gui/README.md).
+
+
 ## What this pass fixed
 
 ### The engine never moved
@@ -530,6 +553,9 @@ python/
   sim_match.py  depth-vs-depth self-play
   oracle.py     independent Python move generator
   perft_check.py, diffwalk.py   movegen cross-checks
+gui/            Tauri 2 + Vue 3 desktop app (see gui/README.md)
+  src/          Vue front end: board, pieces, evaluation panel
+  src-tauri/    Rust backend that owns the engine process
 ```
 
 ## License
