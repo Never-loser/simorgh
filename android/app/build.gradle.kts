@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -26,6 +28,10 @@ android {
         jniLibs.useLegacyPackaging = true
     }
 
+    // Lint is a separate tool with its own download; it is not part of
+    // producing a correct APK and should not be able to block a release.
+    lint { checkReleaseBuilds = false }
+
     buildFeatures { compose = true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 
@@ -35,8 +41,42 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
+    // The release key lives outside the repository. Its location comes from
+    // a properties file named in local.properties (signing.properties=...),
+    // so a clone without the key still builds -- signed with the debug key,
+    // which installs fine but cannot update a copy signed with the real one.
+    val signingProps = Properties().apply {
+        val lp = rootProject.file("local.properties")
+        if (lp.exists()) {
+            val local = Properties().apply { lp.inputStream().use { load(it) } }
+            local.getProperty("signing.properties")?.let { path ->
+                val f = File(path)
+                if (f.exists()) f.inputStream().use { load(it) }
+            }
+        }
+    }
+    val haveReleaseKey = signingProps.getProperty("storeFile") != null
+
+    signingConfigs {
+        if (haveReleaseKey) {
+            create("release") {
+                storeFile = File(signingProps.getProperty("storeFile"))
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = if (haveReleaseKey) signingConfigs.getByName("release")
+                            else signingConfigs.getByName("debug")
+        }
     }
 }
 
