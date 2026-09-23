@@ -13,8 +13,8 @@ android {
         applicationId = "ir.simorgh.chess"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.2.0"
     }
 
     // The engine binary is prebuilt with the NDK and checked in under
