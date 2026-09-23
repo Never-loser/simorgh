@@ -11,14 +11,20 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-// engine + data live in ../../build (built by cmake), run from there so the
-// engine's relative data/book.txt and data/weights.txt resolve.
-const engineDir = resolve(here, "..", "..", "build");
-const engineExe = resolve(engineDir, "simorgh.exe");
+// The engine is built into cpp/build by `cmake -S cpp -B cpp/build`; an
+// older layout put it in build/, which is still accepted. It runs from the
+// repository root either way, because that is where its relative
+// data/book.txt and data/weights.txt resolve.
+const repoRoot = resolve(here, "..", "..");
+const engineDir = repoRoot;
+const candidates = ["cpp/build/simorgh.exe", "cpp/build/simorgh", "build/simorgh.exe"]
+  .map((p) => resolve(repoRoot, p));
+const engineExe = candidates.find((p) => existsSync(p));
 
-if (!existsSync(engineExe)) {
-  console.error("engine not found at", engineExe);
-  console.error("build it first: cmake --build build");
+if (!engineExe) {
+  console.error("engine not found; looked at:");
+  for (const p of candidates) console.error("  ", p);
+  console.error("build it first: cmake -S cpp -B cpp/build && cmake --build cpp/build");
   process.exit(1);
 }
 

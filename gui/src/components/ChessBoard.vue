@@ -264,10 +264,10 @@ const promoPieces = computed(() =>
   inset-inline-end: 5px;
 }
 .sq.light .coord {
-  color: #4a5a6b;
+  color: var(--coord-on-light);
 }
 .sq.dark .coord {
-  color: #cdd8e2;
+  color: var(--coord-on-dark);
 }
 .drag-layer {
   position: fixed;

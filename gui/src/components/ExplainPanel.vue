@@ -150,10 +150,10 @@ const consistent = computed(() => {
   border-radius: 3px;
 }
 .fill.white {
-  background: linear-gradient(90deg, #cdd6e0, #f1f4f8);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--white-side) 82%, var(--muted)), var(--white-side));
 }
 .fill.black {
-  background: linear-gradient(90deg, #4aa877, #63c187);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--black-side) 78%, #000), var(--black-side));
 }
 .val {
   font-size: 12px;
@@ -162,10 +162,10 @@ const consistent = computed(() => {
   font-weight: 600;
 }
 .val.pos {
-  color: #dfe6ee;
+  color: var(--pos-text);
 }
 .val.neg {
-  color: #63c187;
+  color: var(--neg-text);
 }
 .total {
   margin-top: 12px;
@@ -185,10 +185,10 @@ const consistent = computed(() => {
   font-variant-numeric: tabular-nums;
 }
 .total-val.pos {
-  color: #f1f4f8;
+  color: var(--pos-text);
 }
 .total-val.neg {
-  color: #63c187;
+  color: var(--neg-text);
 }
 .reconcile {
   display: flex;

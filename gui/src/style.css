@@ -17,6 +17,12 @@
   --danger: #f2685c;
   --white-side: #eef1f4;
   --black-side: #63c187;
+  --pos-text: #dfe6ee;
+  --neg-text: #63c187;
+  --on-accent-dim: #eaf2ff;
+  --on-accent: #ffffff;
+  --coord-on-light: #4a5a6b;
+  --coord-on-dark: #cdd8e2;
 
   --light-sq: #b6c0cc;
   --dark-sq: #55708c;
@@ -45,8 +51,8 @@ body,
 
 body {
   background:
-    radial-gradient(1200px 700px at 80% -10%, #17202c 0%, transparent 60%),
-    radial-gradient(1000px 600px at -10% 110%, #131a24 0%, transparent 55%),
+    radial-gradient(1200px 700px at 80% -10%, var(--surface-2) 0%, transparent 60%),
+    radial-gradient(1000px 600px at -10% 110%, var(--surface) 0%, transparent 55%),
     var(--bg);
   color: var(--fg);
   font-family: var(--font);
@@ -72,19 +78,19 @@ button {
 }
 button:hover {
   background: var(--surface-3);
-  border-color: #34404f;
+  border-color: color-mix(in srgb, var(--border) 70%, var(--fg));
 }
 button:active {
   transform: translateY(1px);
 }
 button.primary {
-  background: linear-gradient(180deg, #4f8cf0, #3f76d6);
-  border-color: #5b93ef;
-  color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 90%, #fff), color-mix(in srgb, var(--accent) 86%, #000));
+  border-color: var(--accent);
+  color: var(--on-accent);
   font-weight: 600;
 }
 button.primary:hover {
-  background: linear-gradient(180deg, #5b96f3, #4680e0);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 80%, #fff), var(--accent));
 }
 
 ::-webkit-scrollbar {
@@ -92,12 +98,12 @@ button.primary:hover {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #29323f;
+  background: var(--border);
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #34404f;
+  background: color-mix(in srgb, var(--border) 70%, var(--fg));
   background-clip: padding-box;
 }

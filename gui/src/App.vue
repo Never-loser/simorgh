@@ -6,10 +6,18 @@ import { Engine } from "./engine/engine";
 import type { GameState, Color, EngineInfo } from "./engine/types";
 import { fenToBoard, FILES } from "./engine/protocol";
 import { t, type Lang } from "./i18n";
+import { THEMES, applyTheme, savedTheme, type ThemeId } from "./themes";
 
 const lang = ref<Lang>("fa");
 const S = computed(() => t(lang.value));
 const dir = computed(() => (lang.value === "fa" ? "rtl" : "ltr"));
+
+const theme = ref<ThemeId>(savedTheme());
+applyTheme(theme.value);
+function setTheme(id: ThemeId) {
+  theme.value = id;
+  applyTheme(id);
+}
 
 const engine = new Engine();
 const booting = ref(true);
@@ -171,8 +179,8 @@ onMounted(async () => {
       <div class="brand">
         <div class="logo">
           <svg viewBox="0 0 45 45" width="26" height="26"><g
-            style="fill:#6aa5ff;stroke:#0d1017;stroke-width:1.3;stroke-linejoin:round">
-            <path d="M22.5 4v7M19 7.5h7" style="stroke:#6aa5ff;stroke-width:2.2"/>
+            style="fill:var(--accent);stroke:var(--bg);stroke-width:1.3;stroke-linejoin:round">
+            <path d="M22.5 4v7M19 7.5h7" style="stroke:var(--accent);stroke-width:2.2"/>
             <path d="M22.5 12c3.6 0 6.3 2.7 6.3 6 0 1.9-.9 3.6-2.3 4.7h-8c-1.4-1.1-2.3-2.8-2.3-4.7 0-3.3 2.7-6 6.3-6z"/>
             <path d="M12 25c3.2-2.3 6.9-2 10.5.4 3.6-2.4 7.3-2.7 10.5-.4 1.7 2.6 2.5 5.4 2.5 8.4-3.9 1.6-8.5 2.4-13 2.4s-9.1-.8-13-2.4c0-3 .8-5.8 2.5-8.4z"/>
           </g></svg>
@@ -207,6 +215,28 @@ onMounted(async () => {
               :class="{ on: strength === s.elo }"
               @click="setStrength(s.elo)"
             >{{ s.label }}</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-label">{{ S.theme }}</div>
+          <div class="themes">
+            <button
+              v-for="th in THEMES"
+              :key="th.id"
+              class="theme-chip"
+              :class="{ on: theme === th.id }"
+              :title="th.name[lang]"
+              @click="setTheme(th.id)"
+            >
+              <span class="swatch">
+                <i :style="{ background: th.tokens['light-sq'] }" />
+                <i :style="{ background: th.tokens['dark-sq'] }" />
+                <i :style="{ background: th.tokens['dark-sq'] }" />
+                <i :style="{ background: th.tokens['light-sq'] }" />
+              </span>
+              <span class="theme-name">{{ th.name[lang] }}</span>
+            </button>
           </div>
         </div>
 
@@ -359,7 +389,7 @@ onMounted(async () => {
 .seg button.on {
   background: var(--accent-dim);
   border-color: var(--accent);
-  color: #eaf2ff;
+  color: var(--on-accent-dim);
 }
 .row-btns {
   display: flex;
@@ -500,5 +530,45 @@ table {
 .mv.cur {
   color: var(--accent);
   font-weight: 700;
+}
+
+.themes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.theme-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.theme-chip.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.swatch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.swatch i {
+  display: block;
+}
+.theme-name {
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.theme-chip.on .theme-name {
+  color: var(--fg);
 }
 </style>
