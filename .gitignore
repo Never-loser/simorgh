@@ -47,7 +47,8 @@ data/book.gm.txt
 data/book.selfplay-backup.txt
 
 # Reference engine used only for strength measurement, not part of the project.
-tools/
+# Anchored to the root: android/tools holds the app's generators and is committed.
+/tools/
 
 # Lichess API token. Never commit this.
 data/lichess_token.txt
