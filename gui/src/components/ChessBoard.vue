@@ -12,6 +12,7 @@ const props = defineProps<{
   lastMove: string | null;
   interactive: boolean;
   checkSquare: string | null;
+  hint?: string[]; // squares to point out, e.g. in lesson practice
 }>();
 
 const emit = defineEmits<{ (e: "move", uci: string): void }>();
@@ -117,6 +118,7 @@ function squareClasses(sq: string, r: number, c: number) {
     "last-to": props.lastMove?.slice(2, 4) === sq,
     check: props.checkSquare === sq,
     hover: hoverSq.value === sq && dragging.value !== null,
+    hint: !!props.hint?.includes(sq),
   };
 }
 
@@ -223,6 +225,13 @@ const promoPieces = computed(() =>
 }
 .sq.hover {
   box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.7);
+}
+.sq.hint {
+  box-shadow: inset 0 0 0 4px var(--accent);
+  animation: hint 1.1s ease-in-out infinite;
+}
+@keyframes hint {
+  50% { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 22px var(--accent-glow); }
 }
 .piece-holder {
   width: 92%;

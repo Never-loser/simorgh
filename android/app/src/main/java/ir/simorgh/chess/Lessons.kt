@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.CompositionLocalProvider
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 /**
@@ -94,6 +95,16 @@ class LessonBook(val groups: List<LessonGroup>, val lessons: List<Lesson>) {
 
 private fun <T> Pair<T, T>.pick(S: Strings): T = if (S.lang == Lang.FA) first else second
 
+/** Fewest mistakes each lesson's practice has been finished with. */
+private class PracticeRecords(context: Context) {
+    private val p = context.getSharedPreferences("simorgh", Context.MODE_PRIVATE)
+    fun best(id: String): Int? = if (p.contains("practice.$id")) p.getInt("practice.$id", 0) else null
+    fun record(id: String, mistakes: Int) {
+        val old = best(id)
+        if (old == null || mistakes < old) p.edit().putInt("practice.$id", mistakes).apply()
+    }
+}
+
 private fun signed(cp: Int): String =
     (if (cp > 0) "+" else if (cp < 0) "−" else "±") + String.format("%.2f", abs(cp) / 100.0)
 
@@ -139,6 +150,7 @@ fun LessonsScreen(
 
 @Composable
 private fun LessonList(book: LessonBook, S: Strings, onPick: (Lesson) -> Unit) {
+    val records = PracticeRecords(LocalContext.current)
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -160,6 +172,11 @@ private fun LessonList(book: LessonBook, S: Strings, onPick: (Lesson) -> Unit) {
                         Text(l.summary.pick(S), color = Ink.Muted, fontSize = 11.5.sp, maxLines = 1,
                              overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
+                    when (val b = records.best(l.id)) {
+                        null -> {}
+                        0 -> Text("✓", color = Ink.Ok, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        else -> Text("$b", color = Ink.Warn, fontSize = 11.sp)
+                    }
                     Text(l.eco, color = Ink.Accent, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                 }
             }
@@ -180,6 +197,35 @@ private fun LessonPlayer(
     val snaps = remember(lesson.id) { mutableStateMapOf<Int, Engine.State>() }
     var shown by remember(lesson.id) { mutableStateOf<Engine.State?>(null) }
     val total = lesson.moves.size
+    val context = LocalContext.current
+    val records = remember { PracticeRecords(context) }
+
+    // practice: the player finds the lesson side's moves, the app plays the other side's
+    var practice by remember(lesson.id) { mutableStateOf(false) }
+    var mistakes by remember(lesson.id) { mutableStateOf(0) }
+    var wrongHere by remember(lesson.id) { mutableStateOf(0) }
+    var lastRight by remember(lesson.id) { mutableStateOf(false) }
+    val toMove = if (step % 2 == 0) "w" else "b"
+    val yourTurn = practice && step < total && toMove == lesson.side
+    val done = practice && step == total
+    val ready = shown != null && shown === snaps[step]
+    val expected = lesson.moves.getOrNull(step)
+    val hint = when {
+        !yourTurn || expected == null || wrongHere == 0 -> emptySet()
+        wrongHere == 1 -> setOf(expected.uci.substring(0, 2))
+        else -> setOf(expected.uci.substring(0, 2), expected.uci.substring(2, 4))
+    }
+    fun startPractice() { practice = true; mistakes = 0; wrongHere = 0; lastRight = false; step = 0; flip = false }
+    fun onPracticeMove(uci: String) {
+        if (!yourTurn || expected == null) return
+        if (uci == expected.uci) { wrongHere = 0; lastRight = true; step += 1 }
+        else { wrongHere += 1; mistakes += 1; lastRight = false }   // not applied: the piece goes back
+    }
+    // the other side's replies, after a pause long enough to be seen
+    LaunchedEffect(practice, step) {
+        if (practice && step < total && toMove != lesson.side) { delay(700); step += 1 }
+    }
+    LaunchedEffect(done) { if (done) records.record(lesson.id, mistakes) }
 
     LaunchedEffect(lesson.id, step) {
         for (s in listOf(step, step - 1)) {
@@ -195,15 +241,24 @@ private fun LessonPlayer(
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Board(
             fen = shown?.fen ?: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            legal = emptySet(), interactive = false, flipped = flipped,
+            legal = if (yourTurn && ready) shown?.legal.orEmpty() else emptySet(),
+            interactive = yourTurn && ready, flipped = flipped,
             lastMove = current?.uci?.let { it.substring(0, 2) to it.substring(2, 4) },
-            stm = shown?.status?.get("stm") ?: "w", strings = S, onMove = {},
+            stm = shown?.status?.get("stm") ?: "w", strings = S, onMove = { onPracticeMove(it) },
+            hint = hint,
         )
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+          if (practice) {
+            Text("$step / $total", color = Ink.FgDim, fontSize = 13.sp)
+            Text("$mistakes ${S.mistakesLabel}", color = if (mistakes > 0) Ink.Warn else Ink.FgDim, fontSize = 13.sp,
+                 modifier = Modifier.weight(1f).padding(start = 8.dp))
+            TextButton(S.restart) { startPractice() }
+            TextButton(S.endPractice) { practice = false }
+          } else {
             NavButton("⏮", step > 0) { step = 0 }
             NavButton("◀", step > 0) { step -= 1 }
             Text("$step / $total", color = Ink.FgDim, fontSize = 13.sp, modifier = Modifier.width(64.dp),
@@ -212,6 +267,7 @@ private fun LessonPlayer(
             NavButton("⏭", step < total) { step = total }
             Spacer(Modifier.weight(1f))
             NavButton("⇅", true) { flip = !flip }
+          }
         }
     }
 
@@ -227,16 +283,17 @@ private fun LessonPlayer(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 lesson.moves.forEachIndexed { i, m ->
+                    if (practice && i > step) return@forEachIndexed
                     if (i % 2 == 0) Text("${i / 2 + 1}.", color = Ink.Muted, fontSize = 12.sp,
                                          modifier = Modifier.padding(start = 6.dp, end = 2.dp))
                     val cur = step == i + 1
                     Text(
-                        m.san, fontFamily = FontFamily.Monospace, fontSize = 13.sp,
+                        if (practice && i >= step) "…" else m.san, fontFamily = FontFamily.Monospace, fontSize = 13.sp,
                         color = when { cur -> Ink.Fg; step > i -> Ink.FgDim; else -> Ink.Muted },
                         fontWeight = if (cur) FontWeight.Bold else FontWeight.Normal,
                         modifier = Modifier.clip(RoundedCornerShape(5.dp))
                             .background(if (cur) Ink.AccentDim else Color.Transparent)
-                            .clickable { step = i + 1 }.padding(horizontal = 5.dp, vertical = 3.dp),
+                            .clickable(enabled = !practice) { step = i + 1 }.padding(horizontal = 5.dp, vertical = 3.dp),
                     )
                 }
             }
@@ -244,6 +301,33 @@ private fun LessonPlayer(
 
         // this move
         Card {
+            if (done) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Ink.Ok.copy(alpha = 0.12f))
+                        .border(1.dp, Ink.Ok, RoundedCornerShape(8.dp)).padding(12.dp),
+                ) {
+                    Text(S.lineDone, color = Ink.Fg, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(if (mistakes == 0) S.perfect else S.withMistakes.replace("{n}", "$mistakes"),
+                         color = Ink.FgDim, fontSize = 13.5.sp, modifier = Modifier.padding(top = 4.dp))
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(S.again) { startPractice() }
+                }
+                Spacer(Modifier.height(10.dp))
+            } else if (practice) {
+                val border = when { wrongHere > 0 -> Ink.Warn; lastRight -> Ink.Ok; else -> Ink.Border }
+                Text(
+                    when {
+                        !yourTurn -> S.opponentMoves
+                        wrongHere == 0 -> (if (lastRight) S.correct + " " else "") + S.findMove
+                        wrongHere == 1 -> S.wrong1
+                        else -> S.wrong2a + " " + expected?.san + S.wrong2b
+                    },
+                    color = Ink.Fg, fontSize = 13.5.sp, lineHeight = 22.sp,
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Ink.Surface2)
+                        .border(1.dp, border, RoundedCornerShape(8.dp)).padding(12.dp),
+                )
+                Spacer(Modifier.height(10.dp))
+            }
             if (current == null) {
                 Text(S.lessonStart, color = Ink.FgDim, fontSize = 13.5.sp, lineHeight = 22.sp)
             } else {
@@ -260,6 +344,14 @@ private fun LessonPlayer(
                 Delta(snaps[step - 1]?.breakdown, snaps[step]?.breakdown, S)
             }
             Spacer(Modifier.height(12.dp))
+            if (!practice) {
+                Box(
+                    Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(8.dp)).background(Ink.Surface2)
+                        .border(1.dp, Ink.Accent, RoundedCornerShape(8.dp)).clickable { startPractice() },
+                    contentAlignment = Alignment.Center,
+                ) { Text(S.practice, color = Ink.Fg, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold) }
+                Spacer(Modifier.height(8.dp))
+            }
             Box(
                 Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(8.dp)).background(Ink.Accent)
                     .clickable {
@@ -339,6 +431,16 @@ private fun SideDot(side: String) {
     Box(Modifier.size(10.dp).clip(CircleShape)
         .background(if (side == "w") Color(0xFFEEF1F4) else Color(0xFF262C34))
         .border(1.dp, Ink.Border, CircleShape))
+}
+
+@Composable
+private fun TextButton(label: String, onClick: () -> Unit) {
+    Text(
+        label, color = Ink.Fg, fontSize = 12.5.sp,
+        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Ink.Surface2)
+            .border(1.dp, Ink.Border, RoundedCornerShape(8.dp)).clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    )
 }
 
 @Composable

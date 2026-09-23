@@ -24,6 +24,7 @@ function savedLesson(): string {
 }
 
 const lessonId = ref(savedLesson());
+const practice = ref(false);
 const step = ref(0); // plies of the line played so far
 const flipped = ref(false);
 const lesson = computed<Lesson>(() => LESSONS.find((l) => l.id === lessonId.value) ?? LESSONS[0]);
@@ -34,6 +35,7 @@ const orientation = computed<Color>(() => {
 });
 
 function pick(id: string) {
+  practice.value = false;
   lessonId.value = id;
   step.value = 0;
   flipped.value = false;
@@ -101,8 +103,88 @@ function pawns(cp: number): string {
   return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v).toFixed(2);
 }
 
+// ---- practice: the player finds the lesson side's moves, the app plays
+// the other side's
+const mistakes = ref(0);
+const wrongHere = ref(0); // wrong tries at the current move
+const lastRight = ref(false);
+
+const PKEY = "simorgh.practice";
+function loadBest(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(PKEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+// Fewest mistakes each lesson has been finished with.
+const best = ref<Record<string, number>>(loadBest());
+
+const toMove = computed<Color>(() => (step.value % 2 === 0 ? "w" : "b"));
+const expected = computed(() => lesson.value.moves[step.value] ?? null);
+const ready = computed(() => !!shown.value && shown.value === snaps.value.get(key(step.value)));
+const yourTurn = computed(
+  () => practice.value && step.value < total.value && toMove.value === lesson.value.side
+);
+const done = computed(() => practice.value && step.value === total.value);
+const hintSquares = computed(() => {
+  const u = expected.value?.uci;
+  if (!yourTurn.value || !u || wrongHere.value === 0) return [];
+  return wrongHere.value === 1 ? [u.slice(0, 2)] : [u.slice(0, 2), u.slice(2, 4)];
+});
+
+function startPractice() {
+  practice.value = true;
+  mistakes.value = 0;
+  wrongHere.value = 0;
+  lastRight.value = false;
+  step.value = 0;
+  flipped.value = false;
+}
+
+function onPracticeMove(uci: string) {
+  if (!yourTurn.value || !expected.value) return;
+  if (uci === expected.value.uci) {
+    wrongHere.value = 0;
+    lastRight.value = true;
+    step.value += 1;
+  } else {
+    // Not applied: the board is redrawn from the unchanged position, so
+    // the piece goes back where it came from.
+    wrongHere.value += 1;
+    mistakes.value += 1;
+    lastRight.value = false;
+  }
+}
+
+// The other side's replies, after a pause long enough to be seen.
+let replyTimer: number | undefined;
+watch([practice, step, lessonId], () => {
+  clearTimeout(replyTimer);
+  if (!practice.value || step.value >= total.value || toMove.value === lesson.value.side) return;
+  const at = step.value;
+  replyTimer = window.setTimeout(() => {
+    if (practice.value && step.value === at) step.value += 1;
+  }, 700);
+}, { immediate: true });
+onBeforeUnmount(() => clearTimeout(replyTimer));
+
+watch(done, (d) => {
+  if (!d) return;
+  const id = lesson.value.id;
+  if (best.value[id] === undefined || mistakes.value < best.value[id]) {
+    best.value = { ...best.value, [id]: mistakes.value };
+    try {
+      localStorage.setItem(PKEY, JSON.stringify(best.value));
+    } catch {
+      /* the result just is not remembered */
+    }
+  }
+});
+
 // ---- navigation
 function go(s: number) {
+  if (practice.value) return;
   step.value = Math.max(0, Math.min(total.value, s));
 }
 function onKey(e: KeyboardEvent) {
@@ -145,6 +227,8 @@ function continueGame() {
         >
           <span class="side" :class="l.side" />
           <span class="item-name">{{ l.name[lang] }}</span>
+          <span v-if="best[l.id] === 0" class="badge-done" :title="S.perfect">✓</span>
+          <span v-else-if="best[l.id] !== undefined" class="badge-tries" :title="S.mistakesLabel">{{ best[l.id] }}</span>
           <span class="item-eco" dir="ltr">{{ l.eco }}</span>
         </button>
       </div>
@@ -156,14 +240,23 @@ function continueGame() {
         <ChessBoard
           v-if="shown"
           :fen="shown.fen"
-          :legal="new Set()"
+          :legal="yourTurn && ready ? shown.legal : new Set()"
           :orientation="orientation"
           :stm="shown.status.stm"
           :last-move="current?.uci ?? null"
           :check-square="null"
-          :interactive="false"
+          :interactive="yourTurn && ready"
+          :hint="hintSquares"
+          @move="onPracticeMove"
         />
-        <div class="nav" dir="ltr">
+        <div v-if="practice" class="nav practice-bar">
+          <span class="pb-title">{{ S.practicing }}</span>
+          <span class="count" dir="ltr">{{ step }} / {{ total }}</span>
+          <span class="pb-mistakes" :class="{ bad: mistakes > 0 }">{{ mistakes }} {{ S.mistakesLabel }}</span>
+          <button @click="startPractice">{{ S.restart }}</button>
+          <button @click="practice = false">{{ S.endPractice }}</button>
+        </div>
+        <div v-else class="nav" dir="ltr">
           <button :disabled="step === 0" @click="go(0)" :title="S.first">⏮</button>
           <button :disabled="step === 0" @click="go(step - 1)" :title="S.prev">◀</button>
           <span class="count">{{ step }} / {{ total }}</span>
@@ -172,13 +265,13 @@ function continueGame() {
           <button class="flip" @click="flipped = !flipped" :title="S.flip">⇅</button>
         </div>
         <div class="line" dir="ltr">
-          <span v-for="p in pairs" :key="p.n" class="pair">
+          <span v-for="p in pairs.filter((x) => !practice || x.w < step + 1)" :key="p.n" class="pair">
             <span class="num">{{ p.n }}.</span>
             <button class="mv" :class="{ cur: step === p.w + 1, past: step > p.w }" @click="go(p.w + 1)">
-              {{ lesson.moves[p.w].san }}
+              {{ practice && step <= p.w ? "…" : lesson.moves[p.w].san }}
             </button>
             <button
-              v-if="p.b !== null"
+              v-if="p.b !== null && !(practice && step <= p.b)"
               class="mv"
               :class="{ cur: step === p.b + 1, past: step > p.b }"
               @click="go(p.b + 1)"
@@ -208,6 +301,23 @@ function continueGame() {
       </div>
 
       <div class="card move-card">
+        <div v-if="done" class="result">
+          <div class="result-title">{{ S.lineDone }}</div>
+          <div class="result-body">
+            {{ mistakes === 0 ? S.perfect : S.withMistakes.replace("{n}", String(mistakes)) }}
+          </div>
+          <button class="block" @click="startPractice">{{ S.again }}</button>
+        </div>
+        <div v-else-if="practice" class="prompt" :class="{ wrong: wrongHere > 0, right: wrongHere === 0 && lastRight }">
+          <template v-if="!yourTurn">{{ S.opponentMoves }}</template>
+          <template v-else-if="wrongHere === 0">
+            <b v-if="lastRight">{{ S.correct }}</b> {{ S.findMove }}
+          </template>
+          <template v-else-if="wrongHere === 1">{{ S.wrong1 }}</template>
+          <template v-else>
+            {{ S.wrong2a }} <b dir="ltr">{{ expected?.san }}</b>{{ S.wrong2b }}
+          </template>
+        </div>
         <template v-if="current">
           <div class="move-head">
             <span class="side" :class="moverIsWhite ? 'w' : 'b'" />
@@ -231,6 +341,7 @@ function continueGame() {
         </template>
         <p v-else class="note start">{{ S.lessonStart }}</p>
 
+        <button v-if="!practice" class="block practice-btn" @click="startPractice">{{ S.practice }}</button>
         <button class="primary block" @click="continueGame">{{ S.continueVsEngine }}</button>
       </div>
     </aside>
@@ -506,5 +617,82 @@ h2 {
 }
 .block {
   width: 100%;
+}
+.practice-btn {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+.practice-bar {
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+}
+.practice-bar button {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 12.5px;
+}
+.pb-title {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 13px;
+}
+.pb-mistakes {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--fg-dim);
+}
+.pb-mistakes.bad {
+  color: var(--warn);
+}
+.prompt {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.prompt.right {
+  border-color: var(--ok);
+}
+.prompt.right b {
+  color: var(--ok);
+}
+.prompt.wrong {
+  border-color: var(--warn);
+}
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ok) 12%, var(--surface-2));
+  border: 1px solid var(--ok);
+}
+.result-title {
+  font-size: 16px;
+  font-weight: 800;
+}
+.result-body {
+  font-size: 13.5px;
+  color: var(--fg-dim);
+}
+.badge-done {
+  color: var(--ok);
+  font-weight: 800;
+  font-size: 13px;
+}
+.badge-tries {
+  min-width: 18px;
+  text-align: center;
+  font-size: 10.5px;
+  border-radius: 9px;
+  padding: 0 5px;
+  background: var(--surface-2);
+  color: var(--warn);
 }
 </style>

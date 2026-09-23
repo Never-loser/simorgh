@@ -68,6 +68,20 @@ class Strings(val lang: Lang) {
         "Step through the main line with ▶. Each move comes with what it is for and how the engine sees it.",
     )
     val continueVsEngine get() = t("ادامه با موتور از همین‌جا", "Continue against the engine from here")
+    val practice get() = t("تمرین این درس", "Practise this lesson")
+    val mistakesLabel get() = t("اشتباه", "mistakes")
+    val restart get() = t("از اول", "Restart")
+    val endPractice get() = t("پایان تمرین", "End practice")
+    val findMove get() = t("نوبت شماست: حرکت بعدی خط اصلی را روی صفحه بازی کنید.", "Your move: play the next move of the main line on the board.")
+    val correct get() = t("درسته!", "Right!")
+    val opponentMoves get() = t("حریف حرکت می‌کند…", "The opponent is moving…")
+    val wrong1 get() = t("این حرکت خط اصلی نیست. راهنمایی: مهره‌ی روشن‌شده را حرکت بدهید.", "That is not the main line. Hint: move the highlighted piece.")
+    val wrong2a get() = t("حرکت درست", "The move is")
+    val wrong2b get() = t(" است؛ خودتان آن را روی صفحه بازی کنید.", "; play it on the board yourself.")
+    val lineDone get() = t("خط تمام شد!", "Line complete!")
+    val perfect get() = t("بدون حتی یک اشتباه. آفرین!", "Not a single mistake. Well done!")
+    val withMistakes get() = t("با {n} اشتباه. یک بار دیگر امتحان کنید تا بی‌نقص شود.", "With {n} mistakes. Try once more for a clean run.")
+    val again get() = t("یک بار دیگر", "Once more")
     val evalHint get() = t(
         "جمع همه‌ی جمله‌ها دقیقاً همان عددی است که موتور روی آن حساب می‌کند.",
         "Every term sums to exactly the number the engine searched on.",

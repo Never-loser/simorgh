@@ -95,6 +95,7 @@ fun Board(
     strings: Strings,
     onMove: (String) -> Unit,
     modifier: Modifier = Modifier,
+    hint: Set<String> = emptySet(),   // squares to point out, e.g. in lesson practice
 ) {
     var selected by remember { mutableStateOf<String?>(null) }
     var promotion by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -208,6 +209,8 @@ fun Board(
                                     Box(Modifier.fillMaxSize().background(Ink.Selected))
                                 if (sq.name == hover && sq.name != dragFrom)
                                     Box(Modifier.fillMaxSize().border(3.dp, Ink.Accent))
+                                if (sq.name in hint)
+                                    Box(Modifier.fillMaxSize().background(Ink.Accent.copy(alpha = 0.22f)).border(3.dp, Ink.Accent))
 
                                 sq.piece?.let { p ->
                                     Image(
