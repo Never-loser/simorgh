@@ -1,3 +1,5 @@
+<p align="center"><img src="logo/simorgh-icon.svg" width="160" alt=""></p>
+
 # Simorgh
 
 A UCI chess engine in C++17, with a Tkinter front end and a small set of

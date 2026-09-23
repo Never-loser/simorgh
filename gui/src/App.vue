@@ -177,14 +177,7 @@ onMounted(async () => {
   <div class="app" :dir="dir">
     <header class="topbar">
       <div class="brand">
-        <div class="logo">
-          <svg viewBox="0 0 45 45" width="26" height="26"><g
-            style="fill:var(--accent);stroke:var(--bg);stroke-width:1.3;stroke-linejoin:round">
-            <path d="M22.5 4v7M19 7.5h7" style="stroke:var(--accent);stroke-width:2.2"/>
-            <path d="M22.5 12c3.6 0 6.3 2.7 6.3 6 0 1.9-.9 3.6-2.3 4.7h-8c-1.4-1.1-2.3-2.8-2.3-4.7 0-3.3 2.7-6 6.3-6z"/>
-            <path d="M12 25c3.2-2.3 6.9-2 10.5.4 3.6-2.4 7.3-2.7 10.5-.4 1.7 2.6 2.5 5.4 2.5 8.4-3.9 1.6-8.5 2.4-13 2.4s-9.1-.8-13-2.4c0-3 .8-5.8 2.5-8.4z"/>
-          </g></svg>
-        </div>
+        <img class="logo" src="/simorgh.svg" alt="" />
         <div class="titles">
           <div class="title">{{ S.appTitle }}</div>
           <div class="subtitle">{{ S.subtitle }}</div>
@@ -320,11 +313,8 @@ onMounted(async () => {
 .logo {
   width: 44px;
   height: 44px;
-  display: grid;
-  place-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  display: block;
+  border-radius: 10px;
   box-shadow: 0 0 24px -6px var(--accent-glow);
 }
 .title {
