@@ -147,6 +147,7 @@ fun SimorghApp() {
                         onMove = game::play,
                     )
                 }
+                OpeningLine(game.state?.opening, atStart = game.moves.isEmpty(), S = S)
 
                 // ---- everything below the board scrolls
                 Column(
@@ -156,7 +157,8 @@ fun SimorghApp() {
                 ) {
                     EvalBar(game.state?.breakdown?.white)
                     ExplainPanel(game.state?.breakdown, S)
-                    MovesPanel(game.moves, S)
+                    ExplorerPanel(game.state?.book.orEmpty(), game.playersTurn, S, game::play)
+                    MovesPanel(game.sanMoves, S)
                     Spacer(Modifier.height(8.dp))
                 }
 

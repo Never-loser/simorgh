@@ -1,6 +1,7 @@
 import type { GameState, EngineInfo } from "./types";
 import {
   parseFen, parseLegal, parseStatus, parseExplain, parseInfo,
+  parseSan, parseOpening, parseBook,
 } from "./protocol";
 
 /** A byte channel to one Simorgh process. Two implementations exist:
@@ -148,7 +149,15 @@ export class Engine {
     const status = parseStatus(statusLines[statusLines.length - 1] ?? "");
     const explainLines = await this.run("explain", (l) => l.startsWith("actual"));
     const explain = parseExplain(explainLines);
-    return { fen, legal, status, moves: [...moves], explain };
+    const sanLines = await this.run("san", (l) => l.startsWith("san"));
+    const san = parseSan(sanLines[sanLines.length - 1] ?? "");
+    const openingLines = await this.run(
+      "opening", (l) => l === "opening end" || l === "opening none");
+    const opening = parseOpening(openingLines);
+    const bookLines = await this.run(
+      "book", (l) => l === "book end" || l === "book none");
+    const book = parseBook(bookLines, status.stm);
+    return { fen, legal, san, status, moves: [...moves], explain, opening, book };
   }
 
   /** Ask the engine to move. Streams info lines; resolves with bestmove UCI. */

@@ -91,15 +91,16 @@ dependencies {
 }
 
 /**
- * The book and the tuned weights live in ../data at the repository root and
- * are the same files the desktop app and the engine's own tools read. They
- * are copied into assets at build time rather than committed twice: the
- * originals stay the single source of truth, and a re-tune or a book
- * update reaches the phone on the next build with nothing else to touch.
+ * The book, the tuned weights and the opening names live in ../data at the
+ * repository root and are the same files the desktop app and the engine's
+ * own tools read. They are copied into assets at build time rather than
+ * committed twice: the originals stay the single source of truth, and a
+ * re-tune or a book update reaches the phone on the next build with nothing
+ * else to touch.
  */
 val stageEngineData by tasks.registering(Copy::class) {
     from(rootProject.projectDir.resolve("../data")) {
-        include("book.txt", "weights.txt")
+        include("book.txt", "weights.txt", "openings.tsv")
     }
     into(layout.projectDirectory.dir("src/main/assets"))
 }

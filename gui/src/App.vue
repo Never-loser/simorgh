@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import ChessBoard from "./components/ChessBoard.vue";
 import ExplainPanel from "./components/ExplainPanel.vue";
+import OpeningExplorer from "./components/OpeningExplorer.vue";
 import { Engine } from "./engine/engine";
 import type { GameState, Color, EngineInfo } from "./engine/types";
 import { fenToBoard, FILES } from "./engine/protocol";
@@ -24,6 +25,10 @@ const booting = ref(true);
 const engineError = ref(false);
 
 const moves = ref<string[]>([]);
+// The same moves in SAN, for the move list. Each is looked up in the
+// position it was played from, which is the only place SAN is defined.
+const sanMoves = ref<string[]>([]);
+const tab = ref<"eval" | "explorer">("eval");
 const state = ref<GameState | null>(null);
 const thinking = ref(false);
 const info = reactive<EngineInfo>({ raw: "" });
@@ -81,6 +86,15 @@ async function refresh() {
   state.value = await engine.snapshot(moves.value);
 }
 
+function push(uci: string) {
+  sanMoves.value.push(state.value?.san.get(uci) ?? uci);
+  moves.value.push(uci);
+}
+
+const canMove = computed(
+  () => !!state.value && !thinking.value && !gameOver.value && stm.value === playerColor.value
+);
+
 async function applyStrength() {
   if (strength.value === 0) {
     await engine.setOption("UCI_LimitStrength", false);
@@ -99,7 +113,7 @@ async function engineMoveIfNeeded() {
     const movetime = strength.value === 0 ? 1000 : 700;
     const best = await engine.go(moves.value, movetime, (i) => Object.assign(info, i));
     if (best && best !== "0000") {
-      moves.value.push(best);
+      push(best);
       await refresh();
     }
   } finally {
@@ -109,13 +123,14 @@ async function engineMoveIfNeeded() {
 
 async function onMove(uci: string) {
   if (thinking.value || gameOver.value) return;
-  moves.value.push(uci);
+  push(uci);
   await refresh();
   await engineMoveIfNeeded();
 }
 
 async function newGame() {
   moves.value = [];
+  sanMoves.value = [];
   await engine.newGame();
   await applyStrength();
   orientation.value = playerColor.value;
@@ -137,8 +152,11 @@ async function undo() {
   if (thinking.value || moves.value.length === 0) return;
   // step back to the player's turn
   moves.value.pop();
-  if (moves.value.length > 0 && stmAfter(moves.value) !== playerColor.value)
+  sanMoves.value.pop();
+  if (moves.value.length > 0 && stmAfter(moves.value) !== playerColor.value) {
     moves.value.pop();
+    sanMoves.value.pop();
+  }
   await refresh();
 }
 function stmAfter(ms: string[]): Color {
@@ -156,7 +174,7 @@ function toggleLang() {
 const movePairs = computed(() => {
   const out: { n: number; w: string; b: string }[] = [];
   for (let i = 0; i < moves.value.length; i += 2)
-    out.push({ n: i / 2 + 1, w: moves.value[i], b: moves.value[i + 1] ?? "" });
+    out.push({ n: i / 2 + 1, w: sanMoves.value[i], b: sanMoves.value[i + 1] ?? "" });
   return out;
 });
 
@@ -254,7 +272,7 @@ onMounted(async () => {
             :stm="stm"
             :last-move="lastMove"
             :check-square="checkSquare"
-            :interactive="!thinking && !gameOver && stm === playerColor"
+            :interactive="canMove"
             @move="onMove"
           />
           <div class="statusbar" :class="{ warn: engineError }">
@@ -265,13 +283,42 @@ onMounted(async () => {
               <template v-if="info.scoreCp != null">· {{ (info.scoreCp / 100).toFixed(2) }}</template>
             </span>
           </div>
+          <div v-if="state" class="opening-strip">
+            <template v-if="moves.length === 0">
+              <span class="op-main">{{ S.startPos }}</span>
+            </template>
+            <template v-else-if="state.opening">
+              <span class="eco" dir="ltr">{{ state.opening.eco }}</span>
+              <span v-if="lang === 'fa'" class="op-main">{{ state.opening.fa }}</span>
+              <span class="op-sub" :class="{ 'op-main': lang === 'en' }" dir="ltr">{{ state.opening.name }}</span>
+            </template>
+            <template v-else>
+              <span class="op-none">{{ S.noOpening }}</span>
+            </template>
+          </div>
         </div>
       </section>
 
       <!-- right panel -->
       <aside class="panel">
         <div class="explain-box">
-          <ExplainPanel :explain="state?.explain ?? null" :lang="lang" />
+          <div class="tabs">
+            <button :class="{ on: tab === 'eval' }" @click="tab = 'eval'">{{ S.tabEval }}</button>
+            <button :class="{ on: tab === 'explorer' }" @click="tab = 'explorer'">
+              {{ S.tabExplorer }}
+              <span v-if="state?.book.length" class="badge">{{ state.book.length }}</span>
+            </button>
+          </div>
+          <div class="tab-body">
+            <ExplainPanel v-if="tab === 'eval'" :explain="state?.explain ?? null" :lang="lang" />
+            <OpeningExplorer
+              v-else
+              :book="state?.book ?? []"
+              :lang="lang"
+              :interactive="canMove"
+              @play="onMove"
+            />
+          </div>
         </div>
         <div class="moves-box">
           <div class="moves-head">{{ S.moves }}</div>
@@ -280,8 +327,8 @@ onMounted(async () => {
               <tbody>
                 <tr v-for="p in movePairs" :key="p.n">
                   <td class="mn">{{ p.n }}.</td>
-                  <td class="mv" :class="{ cur: p.w === lastMove }">{{ p.w }}</td>
-                  <td class="mv" :class="{ cur: p.b === lastMove }">{{ p.b }}</td>
+                  <td class="mv" :class="{ cur: p.n * 2 - 1 === moves.length }">{{ p.w }}</td>
+                  <td class="mv" :class="{ cur: p.n * 2 === moves.length }">{{ p.b }}</td>
                 </tr>
               </tbody>
             </table>
@@ -472,10 +519,92 @@ onMounted(async () => {
 .explain-box {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 12px 16px 16px;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.tabs button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--fg-dim);
+}
+.tabs button.on {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--fg);
+  font-weight: 600;
+}
+.badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent-dim);
+  color: var(--on-accent-dim);
+  font-size: 10.5px;
+  line-height: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.tab-body {
+  flex: 1;
+  min-height: 0;
+}
+.opening-strip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 13px;
+}
+.eco {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  color: var(--accent);
+  font-family: "SF Mono", "Cascadia Code", monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.op-main {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--fg);
+}
+.op-sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 12px;
+}
+.op-sub.op-main {
+  flex-shrink: 1;
+  font-size: 13px;
+  color: var(--fg);
+}
+.op-none {
+  color: var(--muted);
 }
 .moves-box {
   height: 34%;
@@ -554,6 +683,9 @@ table {
   display: block;
 }
 .theme-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 10.5px;
   color: var(--fg-dim);
   white-space: nowrap;

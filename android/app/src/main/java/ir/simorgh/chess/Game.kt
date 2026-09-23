@@ -18,6 +18,8 @@ class Game(private val engine: Engine, private val scope: CoroutineScope) {
     var ready by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
     var moves by mutableStateOf(listOf<String>()); private set
+    /** The same moves in SAN, each looked up in the position it was played from. */
+    var sanMoves by mutableStateOf(listOf<String>()); private set
     var state by mutableStateOf<Engine.State?>(null); private set
     var info by mutableStateOf<Engine.SearchInfo?>(null); private set
     var thinking by mutableStateOf(false); private set
@@ -74,6 +76,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope) {
             learned = false
             info = null
             moves = emptyList()
+            sanMoves = emptyList()
             engine.newGame()
             sync()
             engineTurnIfNeeded()
@@ -86,7 +89,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope) {
         val legal = state?.legal ?: return
         if (move !in legal) return
         scope.launch {
-            moves = moves + move
+            push(move)
             sync()
             engineTurnIfNeeded()
         }
@@ -98,6 +101,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope) {
         val drop = if (stm == playerColour && moves.size >= 2) 2 else 1
         scope.launch {
             moves = moves.dropLast(drop)
+            sanMoves = sanMoves.dropLast(drop)
             learned = false
             sync()
             // Undoing into the engine's turn (rare: undo right after ours)
@@ -135,9 +139,14 @@ class Game(private val engine: Engine, private val scope: CoroutineScope) {
         thinking = true
         val best = try { engine.go(moves, thinkMs) { info = it } } finally { thinking = false }
         if (best != "0000") {
-            moves = moves + best
+            push(best)
             sync()
         }
+    }
+
+    private fun push(move: String) {
+        sanMoves = sanMoves + (state?.san?.get(move) ?: move)
+        moves = moves + move
     }
 
     /** Fold a finished game into the learned book, once. */

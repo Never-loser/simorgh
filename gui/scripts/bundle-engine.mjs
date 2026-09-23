@@ -32,7 +32,7 @@ run("cmake --build . -j", build);
 // 2. copy engine + data next to each other (engine loads data/ relative to cwd)
 mkdirSync(resolve(dest, "data"), { recursive: true });
 cpSync(resolve(build, exeName), resolve(dest, exeName));
-for (const f of ["book.txt", "weights.txt"])
+for (const f of ["book.txt", "weights.txt", "openings.tsv"])
   cpSync(resolve(repo, "data", f), resolve(dest, "data", f));
 
 console.log(`\nEngine bundled into ${dest}`);

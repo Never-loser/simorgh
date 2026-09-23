@@ -38,6 +38,18 @@ class Strings(val lang: Lang) {
     val whiteWins get() = t("سفید برد", "White wins")
     val blackWins get() = t("سیاه برد", "Black wins")
     val evaluation get() = t("چرا این ارزیابی؟", "Why this evaluation?")
+    val explorer get() = t("کاوشگر گشایش", "Opening explorer")
+    val explorerHint get() = t(
+        "حرکت‌هایی که کتاب موتور اینجا می‌شناسد و نتیجه‌ی بازی‌هایشان. روی حرکت بزنید تا بازی شود.",
+        "The moves the engine's book knows here, and how their games ended. Tap one to play it.",
+    )
+    val noBook get() = t(
+        "کتاب برای این وضعیت حرکتی نمی‌شناسد؛ از اینجا موتور خودش فکر می‌کند.",
+        "The book knows no moves here; from now on the engine thinks for itself.",
+    )
+    val games get() = t("بازی", "games")
+    val startPos get() = t("وضعیت شروع", "Starting position")
+    val noOpening get() = t("هنوز گشایش نام‌داری نیست", "No named opening yet")
     val evalHint get() = t(
         "جمع همه‌ی جمله‌ها دقیقاً همان عددی است که موتور روی آن حساب می‌کند.",
         "Every term sums to exactly the number the engine searched on.",

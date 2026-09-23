@@ -30,12 +30,34 @@ export interface Explain {
   actual: number; // engine evaluate(), must equal score
 }
 
+/** `opening eco B90 ply 10 exact 1` + name/fa lines. */
+export interface Opening {
+  eco: string; // "B90"
+  name: string; // "Sicilian Defense: Najdorf Variation"
+  fa: string; // Persian family name: "دفاع سیسیلی"
+  ply: number; // the ply at which the game reached the named position
+  exact: boolean; // the current position itself is named
+}
+
+/** One `book` line, turned from the mover's view into White/Black. */
+export interface BookMove {
+  uci: string;
+  san: string;
+  games: number;
+  white: number; // games White won
+  draws: number;
+  black: number; // games Black won
+}
+
 export interface GameState {
   fen: string;
   legal: Set<string>; // UCI moves, e.g. "e2e4", "e7e8q"
+  san: Map<string, string>; // UCI -> SAN for every legal move
   status: Status;
   moves: string[]; // move history (UCI)
   explain: Explain | null;
+  opening: Opening | null;
+  book: BookMove[]; // most played first
 }
 
 export interface EngineInfo {

@@ -43,11 +43,31 @@ class Engine(private val context: Context) {
         val phaseMax: Int,
     )
 
+    /** The game's opening, as the engine's `opening` command names it. */
+    data class Opening(
+        val eco: String,         // "B90"
+        val name: String,        // "Sicilian Defense: Najdorf Variation"
+        val fa: String,          // Persian name of the family
+    )
+
+    /** A move the book knows here; results counted for White and Black. */
+    data class BookMove(
+        val uci: String,
+        val san: String,
+        val games: Int,
+        val white: Int,
+        val draws: Int,
+        val black: Int,
+    )
+
     data class State(
         val fen: String,
         val legal: Set<String>,
+        val san: Map<String, String>,    // UCI -> SAN for every legal move
         val status: Map<String, String>,
         val breakdown: Breakdown?,
+        val opening: Opening?,
+        val book: List<BookMove>,        // most played first
     )
 
     data class SearchInfo(val depth: Int, val scoreCp: Int?, val mate: Int?, val nps: Long, val pv: String)
@@ -65,8 +85,12 @@ class Engine(private val context: Context) {
         // storage and hand it absolute paths instead -- both commands already
         // accept them, so this needs no engine change.
         val dataDir = File(context.filesDir, "data").apply { mkdirs() }
-        val book = copyAsset("book.txt", File(dataDir, "book.txt"))
-        val weights = copyAsset("weights.txt", File(dataDir, "weights.txt"))
+        // The book learns from games on the phone, so an existing copy is
+        // kept. The weights and the opening names never change here; they
+        // are refreshed on every start so an app update brings new ones.
+        val book = copyAsset("book.txt", File(dataDir, "book.txt"), refresh = false)
+        val weights = copyAsset("weights.txt", File(dataDir, "weights.txt"), refresh = true)
+        val openings = copyAsset("openings.tsv", File(dataDir, "openings.tsv"), refresh = true)
 
         val p = ProcessBuilder(binary.absolutePath)
             .directory(context.filesDir)
@@ -81,13 +105,14 @@ class Engine(private val context: Context) {
         send("weights load ${weights.absolutePath}")
         readUntil("weights")
         send("setoption name Book File value ${book.absolutePath}")
+        send("setoption name Openings File value ${openings.absolutePath}")
         send("isready")
         readUntil("readyok")
     }
 
-    private fun copyAsset(name: String, target: File): File {
-        // Assets are compressed in the APK, so this unpacks once per install.
-        if (target.exists() && target.length() > 0) return target
+    private fun copyAsset(name: String, target: File, refresh: Boolean): File {
+        // Assets are compressed in the APK, so they are unpacked to files.
+        if (!refresh && target.exists() && target.length() > 0) return target
         context.assets.open(name).use { input ->
             target.outputStream().use { output -> input.copyTo(output) }
         }
@@ -144,7 +169,57 @@ class Engine(private val context: Context) {
             while (i + 1 < parts.size) { put(parts[i], parts[i + 1]); i += 2 }
         }
 
-        State(fen, legal, status, readExplain())
+        val breakdown = readExplain()
+
+        send("san")
+        val sanParts = readUntil("san").split(" ").filter { it.isNotBlank() }.drop(1)
+        val san = sanParts.chunked(2).filter { it.size == 2 }.associate { it[0] to it[1] }
+
+        State(fen, legal, san, status, breakdown, readOpening(), readBook(status["stm"] ?: "w"))
+    }
+
+    private fun readOpening(): Opening? {
+        send("opening")
+        var eco = ""
+        var name = ""
+        var fa = ""
+        while (true) {
+            val line = reader?.readLine() ?: return null
+            when {
+                line == "opening none" -> return null
+                line == "opening end" -> return if (eco.isEmpty()) null else Opening(eco, name, fa)
+                line.startsWith("opening eco ") -> eco = line.split(" ").getOrNull(2) ?: ""
+                line.startsWith("opening name ") -> name = line.removePrefix("opening name ")
+                line.startsWith("opening fa ") -> fa = line.removePrefix("opening fa ")
+            }
+        }
+    }
+
+    /**
+     * The engine counts wins for the side that played the move; the explorer
+     * shows White and Black, so the counts are turned round for Black.
+     */
+    private fun readBook(stm: String): List<BookMove> {
+        send("book")
+        val out = mutableListOf<BookMove>()
+        while (true) {
+            val line = reader?.readLine() ?: break
+            if (line == "book end" || line == "book none") break
+            val f = line.split(" ").filter { it.isNotBlank() }
+            if (f.getOrNull(0) != "book" || f.size < 3) continue
+            val w = f.after("w")?.toIntOrNull() ?: 0
+            val d = f.after("d")?.toIntOrNull() ?: 0
+            val l = f.after("l")?.toIntOrNull() ?: 0
+            out += BookMove(
+                uci = f[1],
+                san = f.after("san") ?: f[1],
+                games = f.after("games")?.toIntOrNull() ?: (w + d + l),
+                white = if (stm == "w") w else l,
+                draws = d,
+                black = if (stm == "w") l else w,
+            )
+        }
+        return out.sortedByDescending { it.games }
     }
 
     private fun readExplain(): Breakdown? {

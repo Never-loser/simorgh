@@ -1,4 +1,4 @@
-import type { Explain, Status, Term, Color, EngineInfo } from "./types";
+import type { Explain, Status, Term, Color, EngineInfo, Opening, BookMove } from "./types";
 
 /** Parse the `Fen: ...` line out of the engine's `d` output. */
 export function parseFen(lines: string[]): string {
@@ -13,6 +13,66 @@ export function parseFen(lines: string[]): string {
 export function parseLegal(line: string): Set<string> {
   const parts = line.trim().split(/\s+/);
   return new Set(parts[0] === "legal" ? parts.slice(1) : parts);
+}
+
+/** `san e2e4 e4 g1f3 Nf3 ...` -> Map UCI -> SAN. */
+export function parseSan(line: string): Map<string, string> {
+  const p = line.trim().split(/\s+/).slice(1);
+  const out = new Map<string, string>();
+  for (let i = 0; i + 1 < p.length; i += 2) out.set(p[i], p[i + 1]);
+  return out;
+}
+
+/**
+ * The `opening` block:
+ *   opening eco B90 ply 10 exact 1
+ *   opening name Sicilian Defense: Najdorf Variation
+ *   opening fa دفاع سیسیلی
+ *   opening end
+ * or the single line `opening none`.
+ */
+export function parseOpening(lines: string[]): Opening | null {
+  const out: Opening = { eco: "", name: "", fa: "", ply: 0, exact: false };
+  for (const raw of lines) {
+    const l = raw.trim();
+    if (l === "opening none") return null;
+    if (l.startsWith("opening eco ")) {
+      const p = l.split(/\s+/);
+      out.eco = p[2] ?? "";
+      out.ply = Number(p[p.indexOf("ply") + 1] ?? 0);
+      out.exact = p[p.indexOf("exact") + 1] === "1";
+    } else if (l.startsWith("opening name ")) {
+      out.name = l.slice("opening name ".length);
+    } else if (l.startsWith("opening fa ")) {
+      out.fa = l.slice("opening fa ".length);
+    }
+  }
+  return out.eco ? out : null;
+}
+
+/**
+ * `book e2e4 games 36881 w 13170 d 13636 l 10075 score 0.54 san e4` lines.
+ * The engine counts wins for the side that played the move; the explorer
+ * shows White and Black, so the counts are turned round for Black's moves.
+ */
+export function parseBook(lines: string[], stm: Color): BookMove[] {
+  const out: BookMove[] = [];
+  for (const raw of lines) {
+    const p = raw.trim().split(/\s+/);
+    if (p[0] !== "book" || p.length < 3 || p[1] === "end" || p[1] === "none") continue;
+    const kv: Record<string, string> = {};
+    for (let i = 2; i + 1 < p.length; i += 2) kv[p[i]] = p[i + 1];
+    const w = Number(kv.w ?? 0), d = Number(kv.d ?? 0), l = Number(kv.l ?? 0);
+    out.push({
+      uci: p[1],
+      san: kv.san ?? p[1],
+      games: Number(kv.games ?? w + d + l),
+      white: stm === "w" ? w : l,
+      draws: d,
+      black: stm === "w" ? l : w,
+    });
+  }
+  return out.sort((a, b) => b.games - a.games);
 }
 
 /** `status incheck 0 legal 20 halfmove 0 stm b` -> Status. */
