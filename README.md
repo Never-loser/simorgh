@@ -534,8 +534,19 @@ compiled in.
 Beyond the standard UCI commands, the engine understands `d` (print the
 board and FEN), `legal` (list legal moves), `status` (check / legal-move
 count / halfmove clock / side to move), `eval` (static evaluation),
-`go perft N`, `bench [depth]`, and the learning commands `learn <result>`,
-`book`, `tune <positions> [out] [passes]` and `weights load|save|reset`.
+`go perft N`, `bench [depth]`, `san` (every legal move as a UCI/SAN pair),
+`opening` (the game's opening, below), and the learning commands
+`learn <result>`, `book`, `tune <positions> [out] [passes]` and
+`weights load|save|reset`.
+
+`opening` names the opening the game is in: the current position if it
+has a name, otherwise the latest named position the game passed through.
+It looks names up by position, not move order, so transpositions are
+named too. The names are `data/openings.tsv`, built by
+`python/openings.py` from [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings)
+(CC0) with Persian names added for the 149 opening families. Both apps
+show the name under the board, and an explorer of the book's moves for
+the current position.
 
 Paths given to these commands may contain spaces; quote them if other
 arguments follow.
