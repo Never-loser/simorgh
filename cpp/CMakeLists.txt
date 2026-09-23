@@ -10,6 +10,7 @@ add_executable(simorgh
     src/evaluate.cpp
     src/movegen.cpp
     src/notation.cpp
+    src/openings.cpp
     src/position.cpp
     src/search.cpp
     src/stats.cpp

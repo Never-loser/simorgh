@@ -3,6 +3,7 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "notation.h"
+#include "openings.h"
 #include "position.h"
 #include "search.h"
 #include "stats.h"
@@ -22,6 +23,8 @@ namespace {
 Position pos;
 Search searcher;
 std::vector<uint64_t> gameKeys;
+// Openings::key_of for each position in gameKeys, for naming the game.
+std::vector<uint64_t> openingKeys;
 std::thread searchThread;
 
 // Every ply of the current game, so `learn` can fold the finished result
@@ -36,6 +39,7 @@ bool bookAutosave = true;
 int bookRandomness = 25;
 std::string bookPath = "data/book.txt";
 std::string weightsPath = "data/weights.txt";
+std::string openingsPath = "data/openings.tsv";
 
 // Strength options. Defaults are full strength; the GUI asks for a limit.
 bool limitStrength = false;
@@ -87,6 +91,7 @@ int requested_elo() {
 void reset_startpos() {
     pos.set(START_FEN);
     gameKeys.clear();
+    openingKeys.clear();
     gamePlies.clear();
 }
 
@@ -114,6 +119,36 @@ void print_position() {
     std::cout << "  +---+---+---+---+---+---+---+---+\n    a   b   c   d   e   f   g   h\n";
     std::cout << "Fen: " << pos.fen() << "\n";
     std::cout << "Key: " << std::hex << pos.key() << std::dec << "\n" << std::endl;
+}
+
+void load_openings() {
+    size_t rejected = 0;
+    const size_t n = Openings::load(openingsPath, rejected);
+    if (n == 0) return;
+    std::cout << "info string openings " << n << " names from " << openingsPath;
+    if (rejected) std::cout << " (" << rejected << " lines did not replay)";
+    std::cout << std::endl;
+}
+
+// The name of the current position, or of the latest named position the
+// game passed through: after 1.e4 c5 2.Nf3 d6 3.Bb5+ the game is still a
+// Sicilian even though that exact position has no name of its own.
+void print_opening() {
+    const Openings::Name* found = Openings::find(Openings::key_of(pos));
+    size_t ply = openingKeys.size();
+    for (size_t i = openingKeys.size(); !found && i-- > 0;) {
+        found = Openings::find(openingKeys[i]);
+        ply = i;
+    }
+    if (!found) {
+        std::cout << "opening none" << std::endl;
+        return;
+    }
+    std::cout << "opening eco " << found->eco << " ply " << ply
+              << " exact " << (ply == openingKeys.size() ? 1 : 0)
+              << "\nopening name " << found->name
+              << "\nopening fa " << found->fa
+              << "\nopening end" << std::endl;
 }
 
 void handle_setoption(std::istringstream& iss) {
@@ -150,6 +185,10 @@ void handle_setoption(std::istringstream& iss) {
         Book::clear();
         Book::load(bookPath);
     }
+    else if (name == "Openings File") {
+        openingsPath = value;
+        load_openings();
+    }
     // (setoption already keeps the whole remainder of the line as `value`,
     // so a Book File path with spaces survives.)
 }
@@ -182,6 +221,7 @@ void handle_position(std::istringstream& iss) {
         std::string fen, part;
         while (iss >> part && part != "moves") fen += part + ' ';
         gameKeys.clear();
+        openingKeys.clear();
         gamePlies.clear();
         pos.set(fen);
     }
@@ -194,6 +234,7 @@ void handle_position(std::istringstream& iss) {
         for (int i = 0; i < ml.count && !applied; ++i) {
             if (move_to_uci(ml.moves[i]) == tok) {
                 gameKeys.push_back(pos.key());
+                openingKeys.push_back(Openings::key_of(pos));
                 gamePlies.push_back({pos.key(), Book::pack_move(ml.moves[i]),
                                      pos.side_to_move()});
                 pos.do_move(ml.moves[i]);
@@ -342,6 +383,7 @@ void loop() {
         std::cout << "info string book " << Book::position_count()
                   << " positions from " << Book::total_games() << " games"
                   << std::endl;
+    load_openings();
 
     std::string line;
     while (std::getline(std::cin, line)) {
@@ -407,6 +449,17 @@ void loop() {
                 if (is_legal(pos, ml.moves[i]))
                     std::cout << ' ' << move_to_uci(ml.moves[i]);
             std::cout << std::endl;
+        } else if (cmd == "san") {
+            // Every legal move as a UCI/SAN pair, for front ends that show
+            // moves the way people write them.
+            MoveList ml;
+            generate_moves(pos, ml);
+            std::cout << "san";
+            for (int i = 0; i < ml.count; ++i)
+                if (is_legal(pos, ml.moves[i]))
+                    std::cout << ' ' << move_to_uci(ml.moves[i]) << ' '
+                              << move_to_san(pos, ml.moves[i]);
+            std::cout << std::endl;
         } else if (cmd == "status") {
             // Everything a front end needs to name the game state without
             // reimplementing move generation: legal move count plus whether
@@ -454,6 +507,8 @@ void loop() {
                       << bookPath << " (" << Book::position_count()
                       << " positions from " << Book::total_games()
                       << " games)" << std::endl;
+        } else if (cmd == "opening") {
+            print_opening();
         } else if (cmd == "book") {
             // What the book knows about the current position.
             const std::vector<Book::Entry> found = Book::entries_for(pos.key());
@@ -469,7 +524,9 @@ void loop() {
                                   << " games " << e.games()
                                   << " w " << e.wins << " d " << e.draws
                                   << " l " << e.losses
-                                  << " score " << e.score() << std::endl;
+                                  << " score " << e.score()
+                                  << " san " << move_to_san(pos, ml.moves[i])
+                                  << std::endl;
                         break;
                     }
                 }
