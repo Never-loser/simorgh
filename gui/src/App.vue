@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import ChessBoard from "./components/ChessBoard.vue";
 import ExplainPanel from "./components/ExplainPanel.vue";
 import OpeningExplorer from "./components/OpeningExplorer.vue";
+import LessonView from "./components/LessonView.vue";
 import { Engine } from "./engine/engine";
 import type { GameState, Color, EngineInfo } from "./engine/types";
 import { fenToBoard, FILES } from "./engine/protocol";
@@ -29,6 +30,7 @@ const moves = ref<string[]>([]);
 // position it was played from, which is the only place SAN is defined.
 const sanMoves = ref<string[]>([]);
 const tab = ref<"eval" | "explorer">("eval");
+const mode = ref<"play" | "lessons">("play");
 const state = ref<GameState | null>(null);
 const thinking = ref(false);
 const info = reactive<EngineInfo>({ raw: "" });
@@ -166,6 +168,21 @@ function stmAfter(ms: string[]): Color {
 function flip() {
   orientation.value = orientation.value === "w" ? "b" : "w";
 }
+// From a lesson: carry on from where the line was left, as a game against
+// the engine, playing the side the lesson teaches.
+async function continueFrom(g: { moves: string[]; sans: string[]; side: Color }) {
+  if (thinking.value) return;
+  mode.value = "play";
+  playerColor.value = g.side;
+  orientation.value = g.side;
+  moves.value = [...g.moves];
+  sanMoves.value = [...g.sans];
+  await engine.newGame();
+  await applyStrength();
+  await refresh();
+  await engineMoveIfNeeded();
+}
+
 function toggleLang() {
   lang.value = lang.value === "fa" ? "en" : "fa";
 }
@@ -201,10 +218,18 @@ onMounted(async () => {
           <div class="subtitle">{{ S.subtitle }}</div>
         </div>
       </div>
+      <div class="modes">
+        <button :class="{ on: mode === 'play' }" @click="mode = 'play'">{{ S.modePlay }}</button>
+        <button :class="{ on: mode === 'lessons' }" :disabled="booting || engineError" @click="mode = 'lessons'">
+          {{ S.modeLessons }}
+        </button>
+      </div>
       <button class="lang-btn" @click="toggleLang">{{ S.lang }}</button>
     </header>
 
-    <main class="layout">
+    <LessonView v-if="mode === 'lessons'" :engine="engine" :lang="lang" @continue="continueFrom" />
+
+    <main v-else class="layout">
       <!-- left rail -->
       <aside class="rail">
         <button class="primary block" @click="newGame">{{ S.newGame }}</button>
@@ -376,6 +401,30 @@ onMounted(async () => {
 .lang-btn {
   border-radius: 999px;
   padding: 7px 16px;
+}
+.modes {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin-inline-start: auto;
+  margin-inline-end: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+}
+.modes button {
+  padding: 6px 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: none;
+  font-size: 13px;
+  color: var(--fg-dim);
+}
+.modes button.on {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--on-accent-dim);
+  font-weight: 600;
 }
 
 .layout {

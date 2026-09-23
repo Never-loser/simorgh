@@ -83,6 +83,21 @@ class Game(private val engine: Engine, private val scope: CoroutineScope) {
         }
     }
 
+    /** Carry on from a lesson's line as a game, playing the side it teaches. */
+    fun startFrom(line: List<String>, sans: List<String>, colour: String) {
+        if (thinking) return
+        scope.launch {
+            playerColour = colour
+            learned = false
+            info = null
+            engine.newGame()
+            moves = line
+            sanMoves = sans
+            sync()
+            engineTurnIfNeeded()
+        }
+    }
+
     /** `move` is a UCI string the engine listed as legal. */
     fun play(move: String) {
         if (!playersTurn) return

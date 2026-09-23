@@ -89,6 +89,7 @@ fun SimorghApp() {
     var flipped by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var askColour by remember { mutableStateOf(false) }
+    var lessons by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         game.setStrength(prefs.elo)
@@ -101,6 +102,16 @@ fun SimorghApp() {
     val dir = if (lang == Lang.FA) LayoutDirection.Rtl else LayoutDirection.Ltr
     CompositionLocalProvider(LocalLayoutDirection provides dir) {
         Surface(color = Ink.Bg, modifier = Modifier.fillMaxSize()) {
+          if (lessons) {
+            LessonsScreen(
+                engine = engine, S = S, onBack = { lessons = false },
+                onContinue = { line, sans, side ->
+                    lessons = false
+                    flipped = side == "b"
+                    game.startFrom(line, sans, side)
+                },
+            )
+          } else {
             Column(Modifier.fillMaxSize()) {
 
                 // ---- top bar
@@ -112,6 +123,8 @@ fun SimorghApp() {
                         Text(S.appTitle, color = Ink.Accent, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Text(S.subtitle, color = Ink.Muted, fontSize = 10.sp, maxLines = 1)
                     }
+                    Pill(S.lessons) { if (game.ready) lessons = true }
+                    Spacer(Modifier.width(8.dp))
                     Pill(S.langToggle) { lang = if (lang == Lang.FA) Lang.EN else Lang.FA; prefs.lang = lang }
                     Spacer(Modifier.width(8.dp))
                     Pill(S.settings) { showSettings = true }
@@ -172,6 +185,7 @@ fun SimorghApp() {
                     ActionButton(S.flip, Modifier.weight(1f)) { flipped = !flipped }
                 }
             }
+          }
         }
 
         // ---- notices

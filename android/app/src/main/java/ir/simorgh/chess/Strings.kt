@@ -50,6 +50,24 @@ class Strings(val lang: Lang) {
     val games get() = t("بازی", "games")
     val startPos get() = t("وضعیت شروع", "Starting position")
     val noOpening get() = t("هنوز گشایش نام‌داری نیست", "No named opening yet")
+    val lessons get() = t("درس گشایش", "Lessons")
+    val backToGame get() = t("بازی", "Play")
+    val allLessons get() = t("همه‌ی درس‌ها", "All lessons")
+    val keyIdeas get() = t("ایده‌های کلیدی", "Key ideas")
+    val lessonAsWhite get() = t("در این درس شما سفید هستید.", "In this lesson you play White.")
+    val lessonAsBlack get() = t("در این درس شما سیاه هستید.", "In this lesson you play Black.")
+    val engineSees get() = t("این حرکت از نگاه موتور", "What the engine sees in this move")
+    val noChange get() = t(
+        "ارزیابی تقریباً تغییری نکرد؛ ارزش این حرکت در نقشه‌ی بعدی است، نه در عدد.",
+        "The evaluation hardly moved: this move's value is in the plan that follows, not in the number.",
+    )
+    val evaluation2 get() = t("ارزیابی", "Evaluation")
+    val deltaLegend get() = t("مثبت یعنی به سود سفید، منفی یعنی به سود سیاه.", "Positive favours White, negative favours Black.")
+    val lessonStart get() = t(
+        "با دکمه‌ی ▶ خط اصلی را حرکت به حرکت جلو ببرید. زیر هر حرکت توضیح آن و نگاه موتور به آن می‌آید.",
+        "Step through the main line with ▶. Each move comes with what it is for and how the engine sees it.",
+    )
+    val continueVsEngine get() = t("ادامه با موتور از همین‌جا", "Continue against the engine from here")
     val evalHint get() = t(
         "جمع همه‌ی جمله‌ها دقیقاً همان عددی است که موتور روی آن حساب می‌کند.",
         "Every term sums to exactly the number the engine searched on.",

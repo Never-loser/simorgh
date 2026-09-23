@@ -4,6 +4,8 @@ import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.BufferedWriter
@@ -27,6 +29,13 @@ import java.io.File
 class Engine(private val context: Context) {
 
     private var process: Process? = null
+
+    // One engine, two users: the game and the lessons. Each exchange with the
+    // engine (a command and the lines it answers with) holds this lock, so a
+    // lesson asking for a position cannot interleave with a search.
+    private val lock = Mutex()
+    private suspend fun <T> exclusive(block: suspend () -> T): T =
+        withContext(Dispatchers.IO) { lock.withLock { block() } }
     private var writer: BufferedWriter? = null
     private var reader: BufferedReader? = null
 
@@ -74,8 +83,8 @@ class Engine(private val context: Context) {
 
     // ---------------------------------------------------------------- boot
 
-    suspend fun start() = withContext(Dispatchers.IO) {
-        if (process != null) return@withContext
+    suspend fun start() = exclusive {
+        if (process != null) return@exclusive
 
         val binary = File(context.applicationInfo.nativeLibraryDir, "libsimorgh.so")
         check(binary.exists()) { "engine missing at ${binary.absolutePath}" }
@@ -148,7 +157,7 @@ class Engine(private val context: Context) {
      * The breakdown rides along so the explanation and the board can never
      * be showing different positions.
      */
-    suspend fun refresh(moves: List<String>): State = withContext(Dispatchers.IO) {
+    suspend fun refresh(moves: List<String>): State = exclusive {
         position(moves)
 
         send("d")
@@ -268,18 +277,18 @@ class Engine(private val context: Context) {
         moves: List<String>,
         movetimeMs: Int,
         onInfo: (SearchInfo) -> Unit,
-    ): String = withContext(Dispatchers.IO) {
+    ): String = exclusive {
         position(moves)
         send("go movetime $movetimeMs")
         while (true) {
-            val line = reader?.readLine() ?: return@withContext "0000"
+            val line = reader?.readLine() ?: return@exclusive "0000"
             val f = line.split(" ").filter { it.isNotBlank() }
             when (f.getOrNull(0)) {
                 "info" -> parseInfo(f)?.let(onInfo)
-                "bestmove" -> return@withContext f.getOrNull(1) ?: "0000"
+                "bestmove" -> return@exclusive f.getOrNull(1) ?: "0000"
             }
         }
-        @Suppress("UNREACHABLE_CODE") return@withContext "0000"
+        @Suppress("UNREACHABLE_CODE") return@exclusive "0000"
     }
 
     private fun parseInfo(f: List<String>): SearchInfo? {
@@ -309,14 +318,14 @@ class Engine(private val context: Context) {
 
     // ------------------------------------------------------------ options
 
-    suspend fun setOption(name: String, value: String) = withContext(Dispatchers.IO) {
+    suspend fun setOption(name: String, value: String) = exclusive {
         send("setoption name $name value $value")
         send("isready")
         readUntil("readyok")
         Unit
     }
 
-    suspend fun newGame() = withContext(Dispatchers.IO) {
+    suspend fun newGame() = exclusive {
         send("ucinewgame")
         send("isready")
         readUntil("readyok")
@@ -324,7 +333,7 @@ class Engine(private val context: Context) {
     }
 
     /** Folds a finished game into the learned book, as the desktop GUI does. */
-    suspend fun learn(moves: List<String>, result: String) = withContext(Dispatchers.IO) {
+    suspend fun learn(moves: List<String>, result: String) = exclusive {
         position(moves)
         send("learn $result")
         readUntil("info string")

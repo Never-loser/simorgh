@@ -24,6 +24,11 @@ export default defineConfig(() => ({
           port: 1421,
         }
       : undefined,
+    // The lessons are data/lessons.json at the repository root, shared with
+    // the Android app; the dev server has to be allowed to read it.
+    fs: {
+      allow: [".."],
+    },
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],

@@ -1,0 +1,1322 @@
+{
+ "groups": [
+  {
+   "id": "e4",
+   "fa": "گشایش‌های e4 برای سفید",
+   "en": "1.e4 openings for White"
+  },
+  {
+   "id": "vs-e4",
+   "fa": "دفاع در برابر e4",
+   "en": "Defences to 1.e4"
+  },
+  {
+   "id": "systems",
+   "fa": "سیستم‌های سفید",
+   "en": "Systems for White"
+  },
+  {
+   "id": "vs-d4",
+   "fa": "دفاع در برابر d4",
+   "en": "Defences to 1.d4"
+  }
+ ],
+ "lessons": [
+  {
+   "id": "italian",
+   "group": "e4",
+   "side": "w",
+   "name": {
+    "fa": "بازی ایتالیایی",
+    "en": "Italian Game"
+   },
+   "summary": {
+    "fa": "یکی از قدیمی‌ترین گشایش‌ها و بهترین جا برای یاد گرفتن اصول: مرکز، گسترش سریع و امنیت شاه.",
+    "en": "One of the oldest openings, and the best place to learn the basics: the centre, quick development and king safety."
+   },
+   "ideas": {
+    "fa": [
+     "مهره‌های سبک را زود بیرون بیاور و زود قلعه برو.",
+     "فیل‌ها روی c4 و c5 به نقطه‌های ضعیف f7 و f2 نشانه می‌روند.",
+     "نقشه‌ی سفید c3 و بعد d4 است تا مرکز را با دو پیاده بگیرد."
+    ],
+    "en": [
+     "Develop the minor pieces early and castle early.",
+     "The bishops on c4 and c5 aim at the weak points f7 and f2.",
+     "White's plan is c3 and then d4, to hold the centre with two pawns."
+    ]
+   },
+   "eco": "C54",
+   "tableName": "Italian Game: Classical Variation, Giuoco Pianissimo",
+   "moves": [
+    {
+     "uci": "e2e4",
+     "san": "e4",
+     "fa": "پیاده‌ی شاه مرکز را می‌گیرد و راه فیل و وزیر را باز می‌کند.",
+     "en": "The king's pawn takes the centre and opens lines for the bishop and queen."
+    },
+    {
+     "uci": "e7e5",
+     "san": "e5",
+     "fa": "سیاه هم سهمش از مرکز را می‌خواهد.",
+     "en": "Black claims a share of the centre too."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "اسب به بهترین خانه‌اش می‌رود و به پیاده‌ی e5 حمله می‌کند.",
+     "en": "The knight develops to its best square and attacks the e5 pawn."
+    },
+    {
+     "uci": "b8c6",
+     "san": "Nc6",
+     "fa": "سیاه با گسترش اسب از e5 دفاع می‌کند.",
+     "en": "Black defends e5 while developing a knight."
+    },
+    {
+     "uci": "f1c4",
+     "san": "Bc4",
+     "fa": "فیل خانه‌ی f7 را نشانه می‌گیرد؛ f7 فقط با شاه دفاع می‌شود و ضعیف‌ترین نقطه‌ی سیاه است.",
+     "en": "The bishop aims at f7, guarded only by the king: the weakest point in Black's camp."
+    },
+    {
+     "uci": "f8c5",
+     "san": "Bc5",
+     "fa": "سیاه آینه‌وار جواب می‌دهد و f2 را نشانه می‌گیرد. این «جوکو پیانو» یعنی «بازی آرام» است.",
+     "en": "Black mirrors it and aims at f2. This is the Giuoco Piano, the 'quiet game'."
+    },
+    {
+     "uci": "c2c3",
+     "san": "c3",
+     "fa": "سفید d4 را آماده می‌کند تا مرکز را با دو پیاده بگیرد.",
+     "en": "White prepares d4, to build a centre of two pawns."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "سیاه با حمله به e4 گسترش می‌یابد و فشار را به سفید برمی‌گرداند.",
+     "en": "Black develops with an attack on e4, handing the question back to White."
+    },
+    {
+     "uci": "d2d3",
+     "san": "d3",
+     "fa": "سفید راه آرام را انتخاب می‌کند: e4 محکم می‌شود و مرکز فعلاً بسته می‌ماند.",
+     "en": "White takes the slow road: e4 is secured and the centre stays closed for now."
+    },
+    {
+     "uci": "d7d6",
+     "san": "d6",
+     "fa": "سیاه هم e5 را محکم می‌کند و راه فیل c8 را باز می‌کند.",
+     "en": "Black secures e5 as well and opens the c8 bishop's diagonal."
+    },
+    {
+     "uci": "e1g1",
+     "san": "O-O",
+     "fa": "شاه به جای امن می‌رود و رخ به مرکز نزدیک می‌شود.",
+     "en": "The king goes to safety and the rook comes towards the centre."
+    },
+    {
+     "uci": "e8g8",
+     "san": "O-O",
+     "fa": "سیاه هم قلعه می‌رود. گسترش هر دو طرف تمام است و وسط‌بازی شروع می‌شود.",
+     "en": "Black castles too. Both sides are developed and the middlegame begins."
+    }
+   ]
+  },
+  {
+   "id": "ruy-lopez",
+   "group": "e4",
+   "side": "w",
+   "name": {
+    "fa": "روی لوپز (اسپانیایی)",
+    "en": "Ruy Lopez (Spanish)"
+   },
+   "summary": {
+    "fa": "سفید بی‌سروصدا ولی پیوسته به مرکز سیاه فشار می‌آورد. از قرن نوزدهم تا امروز گشایش محبوب قهرمانان جهان.",
+    "en": "White presses on Black's centre quietly but constantly. A favourite of world champions from the 19th century to today."
+   },
+   "ideas": {
+    "fa": [
+     "فشار غیرمستقیم روی e5، از راه حمله به اسبی که از آن دفاع می‌کند.",
+     "قلعه‌ی زود و رخ روی ستون e.",
+     "نقشه‌ی c3 و d4 برای یک مرکز بزرگ."
+    ],
+    "en": [
+     "Indirect pressure on e5, by attacking the knight that defends it.",
+     "Castle early and put a rook on the e-file.",
+     "The plan c3 and d4, for a big centre."
+    ]
+   },
+   "eco": "C90",
+   "tableName": "Ruy Lopez: Closed",
+   "moves": [
+    {
+     "uci": "e2e4",
+     "san": "e4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "e7e5",
+     "san": "e5",
+     "fa": "سیاه هم همین کار را می‌کند.",
+     "en": "Black does the same."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش با حمله به e5.",
+     "en": "Development with an attack on e5."
+    },
+    {
+     "uci": "b8c6",
+     "san": "Nc6",
+     "fa": "دفاع از e5.",
+     "en": "Defending e5."
+    },
+    {
+     "uci": "f1b5",
+     "san": "Bb5",
+     "fa": "فیل به اسبی فشار می‌آورد که از e5 دفاع می‌کند. این «روی لوپز» یا گشایش اسپانیایی است.",
+     "en": "The bishop presses on the knight that defends e5. This is the Ruy Lopez, or Spanish Game."
+    },
+    {
+     "uci": "a7a6",
+     "san": "a6",
+     "fa": "سیاه از فیل می‌پرسد: عقب می‌روی یا تعویض می‌کنی؟",
+     "en": "Black asks the bishop: retreat or exchange?"
+    },
+    {
+     "uci": "b5a4",
+     "san": "Ba4",
+     "fa": "سفید فیل را نگه می‌دارد و فشار روی c6 را حفظ می‌کند.",
+     "en": "White keeps the bishop and the pressure on c6."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "سیاه گسترش می‌یابد و به e4 حمله می‌کند.",
+     "en": "Black develops and hits e4."
+    },
+    {
+     "uci": "e1g1",
+     "san": "O-O",
+     "fa": "سفید به‌جای دفاع از e4 قلعه می‌رود؛ اگر سیاه e4 را بگیرد، با Re1 پس گرفته می‌شود.",
+     "en": "White castles instead of defending e4: if Black takes it, Re1 wins it back."
+    },
+    {
+     "uci": "f8e7",
+     "san": "Be7",
+     "fa": "سیاه آماده‌ی قلعه‌رفتن می‌شود. این «روی لوپز بسته» است.",
+     "en": "Black prepares to castle: the Closed Ruy Lopez."
+    },
+    {
+     "uci": "f1e1",
+     "san": "Re1",
+     "fa": "حالا رخ از e4 دفاع می‌کند و سفید واقعاً تهدید می‌کند با Bxc6 و بعد Nxe5 پیاده ببرد.",
+     "en": "Now the rook guards e4, and White really threatens Bxc6 followed by Nxe5."
+    },
+    {
+     "uci": "b7b5",
+     "san": "b5",
+     "fa": "سیاه فیل مزاحم را از قطر a4 تا e8 دور می‌کند.",
+     "en": "Black drives the bishop off the a4-e8 diagonal."
+    },
+    {
+     "uci": "a4b3",
+     "san": "Bb3",
+     "fa": "فیل روی قطر تازه‌ای می‌نشیند و باز f7 را نشانه می‌گیرد.",
+     "en": "The bishop settles on a new diagonal, aimed at f7 again."
+    },
+    {
+     "uci": "d7d6",
+     "san": "d6",
+     "fa": "سیاه e5 را محکم می‌کند و راه فیل c8 را باز می‌کند.",
+     "en": "Black secures e5 and frees the c8 bishop."
+    },
+    {
+     "uci": "c2c3",
+     "san": "c3",
+     "fa": "خانه‌ی c2 برای عقب‌نشینی فیل، و آماده‌کردن d4.",
+     "en": "A retreat square on c2 for the bishop, and preparation for d4."
+    },
+    {
+     "uci": "e8g8",
+     "san": "O-O",
+     "fa": "هر دو طرف آماده‌اند؛ نبرد اصلی بر سر مرکز و پیشروی d4 است.",
+     "en": "Both sides are ready; the fight will be about the centre and d4."
+    }
+   ]
+  },
+  {
+   "id": "scotch",
+   "group": "e4",
+   "side": "w",
+   "name": {
+    "fa": "بازی اسکاتلندی",
+    "en": "Scotch Game"
+   },
+   "summary": {
+    "fa": "سفید مرکز را زود باز می‌کند. بازی باز و روشن است و سرعت گسترش از هر چیزی مهم‌تر است.",
+    "en": "White opens the centre early. The game is open and clear-cut, and the speed of development matters most."
+   },
+   "ideas": {
+    "fa": [
+     "باز کردن مرکز با d4 در حرکت سوم.",
+     "اسب قوی روی d4 و پیاده‌ی e4 که فضای بیشتری می‌دهد.",
+     "شمردن حمله‌ها و دفاع‌ها روی یک خانه، مثل d4."
+    ],
+    "en": [
+     "Opening the centre with d4 on move three.",
+     "A strong knight on d4, and the e4 pawn giving extra space.",
+     "Counting attackers and defenders of one square, like d4."
+    ]
+   },
+   "eco": "C45",
+   "tableName": "Scotch Game: Classical Variation",
+   "moves": [
+    {
+     "uci": "e2e4",
+     "san": "e4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "e7e5",
+     "san": "e5",
+     "fa": "سیاه هم همین کار را می‌کند.",
+     "en": "Black does the same."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش با حمله به e5.",
+     "en": "Development with an attack on e5."
+    },
+    {
+     "uci": "b8c6",
+     "san": "Nc6",
+     "fa": "دفاع از e5.",
+     "en": "Defending e5."
+    },
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "سفید بی‌درنگ مرکز را باز می‌کند و دوباره به e5 حمله می‌کند.",
+     "en": "White opens the centre at once and attacks e5 again."
+    },
+    {
+     "uci": "e5d4",
+     "san": "exd4",
+     "fa": "سیاه نمی‌تواند e5 را نگه دارد و تعویض می‌کند.",
+     "en": "Black cannot hold e5 and takes."
+    },
+    {
+     "uci": "f3d4",
+     "san": "Nxd4",
+     "fa": "سفید با اسب پس می‌گیرد. سفید پیاده‌ی e4 را دارد و سیاه در مرکز پیاده‌ای ندارد: کمی فضای بیشتر برای سفید.",
+     "en": "White recaptures with the knight. White keeps a pawn on e4 and Black has none in the centre: a little more space."
+    },
+    {
+     "uci": "f8c5",
+     "san": "Bc5",
+     "fa": "سیاه فوراً به اسب مرکزی حمله می‌کند.",
+     "en": "Black attacks the centralised knight at once."
+    },
+    {
+     "uci": "c1e3",
+     "san": "Be3",
+     "fa": "سفید از اسب دفاع می‌کند و یک مهره‌ی دیگر را هم بیرون می‌آورد.",
+     "en": "White defends the knight and develops another piece."
+    },
+    {
+     "uci": "d8f6",
+     "san": "Qf6",
+     "fa": "وزیر هم به d4 حمله می‌کند: حالا سه مهره‌ی سیاه به d4 حمله کرده‌اند و فقط دو مهره‌ی سفید از آن دفاع می‌کنند.",
+     "en": "The queen joins in: three black pieces now attack d4, and only two white ones defend it."
+    },
+    {
+     "uci": "c2c3",
+     "san": "c3",
+     "fa": "پیاده‌ی c3 سومین مدافع d4 است و تعادل برمی‌گردد.",
+     "en": "The c3 pawn is the third defender of d4, and the balance is restored."
+    },
+    {
+     "uci": "g8e7",
+     "san": "Nge7",
+     "fa": "اسب به e7 می‌رود نه f6، تا جلوی وزیر را نگیرد.",
+     "en": "The knight goes to e7, not f6, so as not to block the queen."
+    },
+    {
+     "uci": "f1c4",
+     "san": "Bc4",
+     "fa": "سفید گسترش را ادامه می‌دهد و آماده‌ی قلعه‌رفتن می‌شود.",
+     "en": "White keeps developing and gets ready to castle."
+    }
+   ]
+  },
+  {
+   "id": "sicilian-najdorf",
+   "group": "vs-e4",
+   "side": "b",
+   "name": {
+    "fa": "دفاع سیسیلی: نایدورف",
+    "en": "Sicilian Defence: Najdorf"
+   },
+   "summary": {
+    "fa": "مبارزه‌جوترین جواب به e4. سیاه از حرکت اول تعادل را به هم می‌زند تا برای برد بازی کند.",
+    "en": "The most combative answer to 1.e4. Black unbalances the game from move one, to play for a win."
+   },
+   "ideas": {
+    "fa": [
+     "پیاده‌ی کناری c با پیاده‌ی مرکزی d سفید عوض می‌شود.",
+     "ستون نیمه‌باز c مال رخ‌های سیاه است.",
+     "بازی سیاه در جناح وزیر با a6 و بعد b5."
+    ],
+    "en": [
+     "A flank pawn (c) is traded for White's centre pawn (d).",
+     "The half-open c-file belongs to Black's rooks.",
+     "Black plays on the queenside with ...a6 and then ...b5."
+    ]
+   },
+   "eco": "B90",
+   "tableName": "Sicilian Defense: Najdorf Variation",
+   "moves": [
+    {
+     "uci": "e2e4",
+     "san": "e4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "c7c5",
+     "san": "c5",
+     "fa": "سیاه به‌جای تقارن، با پیاده‌ی کناری برای خانه‌ی d4 می‌جنگد. بازی از همین حرکت نامتقارن است.",
+     "en": "Instead of symmetry, Black fights for d4 with a flank pawn. The game is unbalanced from here."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش و آماده‌کردن d4.",
+     "en": "Development, preparing d4."
+    },
+    {
+     "uci": "d7d6",
+     "san": "d6",
+     "fa": "سیاه e5 را کنترل می‌کند و راه فیل c8 را باز می‌کند.",
+     "en": "Black controls e5 and opens the c8 bishop."
+    },
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "سفید مرکز را باز می‌کند.",
+     "en": "White opens the centre."
+    },
+    {
+     "uci": "c5d4",
+     "san": "cxd4",
+     "fa": "ایده‌ی اصلی سیسیلی: پیاده‌ی کناری c با پیاده‌ی مرکزی سفید عوض می‌شود. حالا سیاه دو پیاده‌ی مرکزی دارد و سفید یکی.",
+     "en": "The whole idea of the Sicilian: a flank pawn for a centre pawn. Black now has two central pawns to White's one."
+    },
+    {
+     "uci": "f3d4",
+     "san": "Nxd4",
+     "fa": "سفید با اسب پس می‌گیرد و در گسترش جلوتر است.",
+     "en": "White recaptures and leads in development."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "گسترش با حمله به e4.",
+     "en": "Developing with an attack on e4."
+    },
+    {
+     "uci": "b1c3",
+     "san": "Nc3",
+     "fa": "سفید از e4 دفاع می‌کند.",
+     "en": "White defends e4."
+    },
+    {
+     "uci": "a7a6",
+     "san": "a6",
+     "fa": "حرکت نایدورف: خانه‌ی b5 را از مهره‌های سفید می‌گیرد و b5 را برای سیاه آماده می‌کند. گشایش محبوب فیشر و کاسپاروف.",
+     "en": "The Najdorf move: it takes b5 away from White's pieces and prepares ...b5. A favourite of Fischer and Kasparov."
+    }
+   ]
+  },
+  {
+   "id": "french",
+   "group": "vs-e4",
+   "side": "b",
+   "name": {
+    "fa": "دفاع فرانسوی",
+    "en": "French Defence"
+   },
+   "summary": {
+    "fa": "دفاعی محکم که مرکز را به سفید می‌دهد تا بعد به آن ضربه بزند. ضعف معروفش فیل c8 است که پشت پیاده‌ی e6 گیر می‌کند.",
+    "en": "A solid defence that lets White have the centre, to strike at it later. Its known weakness is the c8 bishop, shut in behind e6."
+   },
+   "ideas": {
+    "fa": [
+     "ضربه به زنجیره‌ی پیاده‌ی سفید با c5 و f6.",
+     "حمله به پایه‌ی زنجیره، یعنی d4.",
+     "حواست به فیل خانه‌سفید محبوس باشد."
+    ],
+    "en": [
+     "Strike at White's pawn chain with ...c5 and ...f6.",
+     "Attack the base of the chain, d4.",
+     "Look after the shut-in light-squared bishop."
+    ]
+   },
+   "eco": "C14",
+   "tableName": "French Defense: Classical Variation",
+   "moves": [
+    {
+     "uci": "e2e4",
+     "san": "e4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "e7e6",
+     "san": "e6",
+     "fa": "سیاه d5 را آماده می‌کند تا مرکز سفید را به چالش بکشد.",
+     "en": "Black prepares ...d5 to challenge White's centre."
+    },
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "سفید با دو پیاده مرکز را کامل می‌گیرد.",
+     "en": "White takes the full centre with two pawns."
+    },
+    {
+     "uci": "d7d5",
+     "san": "d5",
+     "fa": "سیاه به e4 حمله می‌کند؛ d5 با e6 محکم است.",
+     "en": "Black attacks e4; d5 is backed by e6."
+    },
+    {
+     "uci": "b1c3",
+     "san": "Nc3",
+     "fa": "از e4 دفاع می‌کند و گسترش می‌یابد.",
+     "en": "Defends e4 and develops."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "فشار بیشتر روی e4.",
+     "en": "More pressure on e4."
+    },
+    {
+     "uci": "c1g5",
+     "san": "Bg5",
+     "fa": "فیل اسب f6 را، که به e4 فشار می‌آورد، به وزیر میخ می‌کند.",
+     "en": "The bishop pins the f6 knight, which presses on e4, to the queen."
+    },
+    {
+     "uci": "f8e7",
+     "san": "Be7",
+     "fa": "سیاه میخ را باز می‌کند.",
+     "en": "Black breaks the pin."
+    },
+    {
+     "uci": "e4e5",
+     "san": "e5",
+     "fa": "سفید با گرفتن فضا اسب را از f6 می‌راند. زنجیره‌ی پیاده‌ی d4 و e5 شکل می‌گیرد.",
+     "en": "White gains space and drives the knight away. The d4-e5 pawn chain is formed."
+    },
+    {
+     "uci": "f6d7",
+     "san": "Nfd7",
+     "fa": "اسب عقب می‌رود و آماده است با c5 و f6 به زنجیره حمله شود.",
+     "en": "The knight retreats, ready to support ...c5 and ...f6 against the chain."
+    },
+    {
+     "uci": "g5e7",
+     "san": "Bxe7",
+     "fa": "سفید فیل‌ها را عوض می‌کند.",
+     "en": "White trades bishops."
+    },
+    {
+     "uci": "d8e7",
+     "san": "Qxe7",
+     "fa": "نقشه‌ها روشن است: سفید در جناح شاه بازی می‌کند (مثلاً با f4)، سیاه با c5 به پایه‌ی زنجیره، d4، ضربه می‌زند.",
+     "en": "The plans are set: White plays on the kingside (f4, for example), Black strikes the base of the chain, d4, with ...c5."
+    }
+   ]
+  },
+  {
+   "id": "caro-kann",
+   "group": "vs-e4",
+   "side": "b",
+   "name": {
+    "fa": "دفاع کاروکان",
+    "en": "Caro-Kann Defence"
+   },
+   "summary": {
+    "fa": "یکی از محکم‌ترین جواب‌ها به e4: ساختار پیاده‌ی سالم و فیلی که آزاد می‌ماند. سیاه کمی فضا می‌دهد ولی ضعفی ندارد.",
+    "en": "One of the most solid answers to 1.e4: a healthy pawn structure and a bishop that stays free. Black gives a little space but has no weaknesses."
+   },
+   "ideas": {
+    "fa": [
+     "فیل c8 قبل از e6 بیرون می‌آید.",
+     "ساختار محکم پیاده‌ها روی c6 و e6.",
+     "سیاه معمولاً آخر بازی را خوب بازی می‌کند، چون ضعف پیاده ندارد."
+    ],
+    "en": [
+     "The c8 bishop comes out before ...e6.",
+     "A solid pawn structure on c6 and e6.",
+     "Black is usually fine in the endgame: no pawn weaknesses."
+    ]
+   },
+   "eco": "B19",
+   "tableName": "Caro-Kann Defense: Classical Variation",
+   "moves": [
+    {
+     "uci": "e2e4",
+     "san": "e4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "c7c6",
+     "san": "c6",
+     "fa": "مثل فرانسوی d5 را آماده می‌کند، ولی راه فیل c8 را نمی‌بندد.",
+     "en": "Like the French it prepares ...d5, but without blocking the c8 bishop."
+    },
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "سفید مرکز را کامل می‌گیرد.",
+     "en": "White takes the full centre."
+    },
+    {
+     "uci": "d7d5",
+     "san": "d5",
+     "fa": "حمله به e4.",
+     "en": "Attacking e4."
+    },
+    {
+     "uci": "b1c3",
+     "san": "Nc3",
+     "fa": "از e4 دفاع می‌کند.",
+     "en": "Defends e4."
+    },
+    {
+     "uci": "d5e4",
+     "san": "dxe4",
+     "fa": "سیاه تعویض می‌کند تا مرکز سفید را کوچک کند.",
+     "en": "Black trades to reduce White's centre."
+    },
+    {
+     "uci": "c3e4",
+     "san": "Nxe4",
+     "fa": "اسب سفید در مرکز است.",
+     "en": "White's knight stands in the centre."
+    },
+    {
+     "uci": "c8f5",
+     "san": "Bf5",
+     "fa": "همان فیلی که در فرانسوی گیر می‌کند، اینجا قبل از e6 بیرون می‌آید و به اسب حمله می‌کند.",
+     "en": "The bishop that gets stuck in the French comes out before ...e6, attacking the knight."
+    },
+    {
+     "uci": "e4g3",
+     "san": "Ng3",
+     "fa": "اسب با حمله به فیل عقب می‌رود.",
+     "en": "The knight retreats with an attack on the bishop."
+    },
+    {
+     "uci": "f5g6",
+     "san": "Bg6",
+     "fa": "فیل روی قطر خوبش می‌ماند.",
+     "en": "The bishop stays on its good diagonal."
+    },
+    {
+     "uci": "h2h4",
+     "san": "h4",
+     "fa": "سفید تهدید می‌کند با h5 فیل را به دام بیندازد.",
+     "en": "White threatens h5, trapping the bishop."
+    },
+    {
+     "uci": "h7h6",
+     "san": "h6",
+     "fa": "سیاه خانه‌ی h7 را برای فیل آماده می‌کند.",
+     "en": "Black makes room on h7 for the bishop."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش؛ اسب خانه‌ی e5 را هم نشانه می‌گیرد.",
+     "en": "Development; the knight also eyes e5."
+    },
+    {
+     "uci": "b8d7",
+     "san": "Nd7",
+     "fa": "اسب e5 را کنترل می‌کند و راه Ngf6 را باز می‌کند. ساختار سیاه بسیار محکم است.",
+     "en": "The knight controls e5 and prepares ...Ngf6. Black's structure is rock solid."
+    }
+   ]
+  },
+  {
+   "id": "scandinavian",
+   "group": "vs-e4",
+   "side": "b",
+   "name": {
+    "fa": "دفاع اسکاندیناوی",
+    "en": "Scandinavian Defence"
+   },
+   "summary": {
+    "fa": "ساده و سرراست: سیاه مرکز را از حرکت اول باز می‌کند و در عوض کمی وقت، ساختاری محکم می‌گیرد.",
+    "en": "Simple and direct: Black opens the centre on move one and, for a little time, gets a solid structure."
+   },
+   "ideas": {
+    "fa": [
+     "باز کردن فوری مرکز.",
+     "وزیری که زود بیرون آمده باید جای امنی مثل a5 پیدا کند.",
+     "ساختار c6 و فیل فعال روی f5، شبیه کاروکان."
+    ],
+    "en": [
+     "Opening the centre at once.",
+     "An early queen needs a safe square, like a5.",
+     "The c6 structure and an active bishop on f5, as in the Caro-Kann."
+    ]
+   },
+   "eco": "B01",
+   "tableName": "Scandinavian Defense: Main Line, Mieses Variation",
+   "moves": [
+    {
+     "uci": "e2e4",
+     "san": "e4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "d7d5",
+     "san": "d5",
+     "fa": "سیاه بی‌درنگ به e4 حمله می‌کند.",
+     "en": "Black attacks e4 at once."
+    },
+    {
+     "uci": "e4d5",
+     "san": "exd5",
+     "fa": "سفید می‌گیرد.",
+     "en": "White takes."
+    },
+    {
+     "uci": "d8d5",
+     "san": "Qxd5",
+     "fa": "وزیر پس می‌گیرد. بیرون آمدن زود وزیر معمولاً خطر دارد، چون حریف با حمله به آن وقت می‌خرد.",
+     "en": "The queen recaptures. An early queen is usually risky: the opponent gains time by attacking it."
+    },
+    {
+     "uci": "b1c3",
+     "san": "Nc3",
+     "fa": "درست همین: سفید با حمله به وزیر گسترش می‌یابد.",
+     "en": "Exactly that: White develops with an attack on the queen."
+    },
+    {
+     "uci": "d5a5",
+     "san": "Qa5",
+     "fa": "وزیر به a5 می‌رود، جایی که امن است و قطر e1 تا a5 را زیر نظر دارد.",
+     "en": "The queen goes to a5, where it is safe and watches the e1-a5 diagonal."
+    },
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "گسترش.",
+     "en": "Development."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش.",
+     "en": "Development."
+    },
+    {
+     "uci": "c7c6",
+     "san": "c6",
+     "fa": "خانه‌ی c7 برای عقب‌نشینی وزیر، و کنترل b5 و d5.",
+     "en": "A retreat square for the queen on c7, and control of b5 and d5."
+    },
+    {
+     "uci": "f1c4",
+     "san": "Bc4",
+     "fa": "گسترش؛ فیل f7 را نشانه می‌گیرد.",
+     "en": "Development; the bishop aims at f7."
+    },
+    {
+     "uci": "c8f5",
+     "san": "Bf5",
+     "fa": "فیل خانه‌سفید سیاه آزادانه بیرون می‌آید؛ ساختار شبیه کاروکان است.",
+     "en": "Black's light-squared bishop develops freely; the structure resembles the Caro-Kann."
+    }
+   ]
+  },
+  {
+   "id": "london",
+   "group": "systems",
+   "side": "w",
+   "name": {
+    "fa": "سیستم لندن",
+    "en": "London System"
+   },
+   "summary": {
+    "fa": "یک سیستم به‌جای یک خط: در برابر تقریباً هر دفاعی همین آرایش را می‌چینی. کم‌خطر و آسان برای یاد گرفتن.",
+    "en": "A system rather than a line: you set up the same way against almost anything. Low-risk and easy to learn."
+   },
+   "ideas": {
+    "fa": [
+     "فیل خانه‌سیاه قبل از e3 به f4 می‌رود.",
+     "هرم پیاده‌ی c3، d4 و e3 مرکز را محکم نگه می‌دارد.",
+     "نقشه‌ی حمله: اسب به e5 و مهره‌ها رو به جناح شاه."
+    ],
+    "en": [
+     "The dark-squared bishop goes to f4 before e3.",
+     "The c3-d4-e3 pawn pyramid holds the centre firmly.",
+     "The attacking plan: a knight on e5 and pieces aimed at the kingside."
+    ]
+   },
+   "eco": "D02",
+   "tableName": "Queen's Pawn Game: London System",
+   "moves": [
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "پیاده‌ی وزیر مرکز را می‌گیرد؛ برخلاف e4 از قبل با وزیر دفاع شده است.",
+     "en": "The queen's pawn takes the centre; unlike e4 it is already guarded by the queen."
+    },
+    {
+     "uci": "d7d5",
+     "san": "d5",
+     "fa": "سیاه هم مرکز را می‌گیرد.",
+     "en": "Black takes the centre too."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش.",
+     "en": "Development."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "گسترش.",
+     "en": "Development."
+    },
+    {
+     "uci": "c1f4",
+     "san": "Bf4",
+     "fa": "حرکت شاخص لندن: فیل خانه‌سیاه قبل از e3 بیرون می‌آید تا پشت پیاده‌ها گیر نکند.",
+     "en": "The signature move: the dark-squared bishop comes out before e3, so it is not shut in."
+    },
+    {
+     "uci": "e7e6",
+     "san": "e6",
+     "fa": "سیاه راه فیل f8 را باز می‌کند.",
+     "en": "Black opens the f8 bishop."
+    },
+    {
+     "uci": "e2e3",
+     "san": "e3",
+     "fa": "ساختار محکم d4 و e3، و راه فیل f1 باز می‌شود.",
+     "en": "A solid d4-e3 structure, and the f1 bishop is free."
+    },
+    {
+     "uci": "c7c5",
+     "san": "c5",
+     "fa": "سیاه به d4 ضربه می‌زند.",
+     "en": "Black strikes at d4."
+    },
+    {
+     "uci": "c2c3",
+     "san": "c3",
+     "fa": "d4 محکم می‌شود و هرم c3، d4 و e3 شکل می‌گیرد.",
+     "en": "d4 is reinforced: the c3-d4-e3 pyramid."
+    },
+    {
+     "uci": "b8c6",
+     "san": "Nc6",
+     "fa": "فشار بیشتر روی d4.",
+     "en": "More pressure on d4."
+    },
+    {
+     "uci": "b1d2",
+     "san": "Nbd2",
+     "fa": "اسب ساختار را پشتیبانی می‌کند و بعداً می‌تواند به e5 یا f3 برود.",
+     "en": "The knight supports the structure and can later go to e5 or f3."
+    },
+    {
+     "uci": "f8d6",
+     "san": "Bd6",
+     "fa": "سیاه پیشنهاد می‌دهد فیل خوب سفید تعویض شود.",
+     "en": "Black offers to trade off White's good bishop."
+    },
+    {
+     "uci": "f4g3",
+     "san": "Bg3",
+     "fa": "سفید فیل را نگه می‌دارد؛ اگر سیاه روی g3 تعویض کند، hxg3 ستون h را برای رخ سفید باز می‌کند.",
+     "en": "White keeps the bishop; if Black takes on g3, hxg3 opens the h-file for White's rook."
+    },
+    {
+     "uci": "e8g8",
+     "san": "O-O",
+     "fa": "سیاه قلعه می‌رود.",
+     "en": "Black castles."
+    },
+    {
+     "uci": "f1d3",
+     "san": "Bd3",
+     "fa": "همه‌ی مهره‌ها به جناح شاه نگاه می‌کنند؛ نقشه‌ی سفید Ne5 و حمله است.",
+     "en": "Every piece now looks at the kingside: White's plan is Ne5 and an attack."
+    }
+   ]
+  },
+  {
+   "id": "english",
+   "group": "systems",
+   "side": "w",
+   "name": {
+    "fa": "گشایش انگلیسی",
+    "en": "English Opening"
+   },
+   "summary": {
+    "fa": "گشایشی انعطاف‌پذیر و موضعی: بازی کندتر است و فهمیدن نقشه‌ها از حفظ کردن خط‌ها مهم‌تر است.",
+    "en": "A flexible, positional opening: the game is slower, and understanding the plans matters more than memorising lines."
+   },
+   "ideas": {
+    "fa": [
+     "کنترل مرکز از کنار، به‌خصوص خانه‌ی d5.",
+     "فیل فیانکتو روی g2 روی قطر بلند.",
+     "نقشه‌ی معمول سفید: Rb1 و b4 در جناح وزیر."
+    ],
+    "en": [
+     "Controlling the centre from the side, especially d5.",
+     "A fianchettoed bishop on g2, on the long diagonal.",
+     "White's usual plan: Rb1 and b4 on the queenside."
+    ]
+   },
+   "eco": "A26",
+   "tableName": "English Opening: King's English Variation, Closed System, Full Symmetry",
+   "moves": [
+    {
+     "uci": "c2c4",
+     "san": "c4",
+     "fa": "سفید مرکز را از کنار کنترل می‌کند، به‌خصوص d5.",
+     "en": "White controls the centre from the side, especially d5."
+    },
+    {
+     "uci": "e7e5",
+     "san": "e5",
+     "fa": "سیاه مرکز را با پیاده می‌گیرد: یک سیسیلی با رنگ‌های برعکس.",
+     "en": "Black takes the centre with a pawn: a Sicilian with colours reversed."
+    },
+    {
+     "uci": "b1c3",
+     "san": "Nc3",
+     "fa": "کنترل d5.",
+     "en": "Controlling d5."
+    },
+    {
+     "uci": "b8c6",
+     "san": "Nc6",
+     "fa": "گسترش.",
+     "en": "Development."
+    },
+    {
+     "uci": "g2g3",
+     "san": "g3",
+     "fa": "آماده‌کردن فیانکتو.",
+     "en": "Preparing a fianchetto."
+    },
+    {
+     "uci": "g7g6",
+     "san": "g6",
+     "fa": "سیاه هم همین را انتخاب می‌کند.",
+     "en": "Black chooses the same."
+    },
+    {
+     "uci": "f1g2",
+     "san": "Bg2",
+     "fa": "فیل روی قطر بلند، d5 و b7 را نشانه می‌گیرد.",
+     "en": "The bishop on the long diagonal eyes d5 and b7."
+    },
+    {
+     "uci": "f8g7",
+     "san": "Bg7",
+     "fa": "سیاه هم فیلش را فیانکتو می‌کند.",
+     "en": "Black fianchettoes too."
+    },
+    {
+     "uci": "d2d3",
+     "san": "d3",
+     "fa": "سفید آرام بازی می‌کند و مرکز را بسته نگه می‌دارد.",
+     "en": "White plays quietly and keeps the centre closed."
+    },
+    {
+     "uci": "d7d6",
+     "san": "d6",
+     "fa": "ساختار بسته و متقارن. نقشه‌ی سفید معمولاً Rb1 و b4 است، و سیاه در جناح شاه بازی می‌کند.",
+     "en": "A closed, symmetrical structure. White usually goes Rb1 and b4; Black plays on the kingside."
+    }
+   ]
+  },
+  {
+   "id": "qgd",
+   "group": "vs-d4",
+   "side": "b",
+   "name": {
+    "fa": "گامبی وزیرِ ردشده",
+    "en": "Queen's Gambit Declined"
+   },
+   "summary": {
+    "fa": "کلاسیک‌ترین دفاع در برابر d4: سیاه مرکز را محکم نگه می‌دارد. امن ولی کمی منفعل؛ مشکل اصلی فیل c8 است.",
+    "en": "The most classical defence to 1.d4: Black holds the centre firmly. Safe but a little passive; the main problem is the c8 bishop."
+   },
+   "ideas": {
+    "fa": [
+     "نگه داشتن d5 با e6 و c6.",
+     "آزاد کردن بازی در لحظه‌ی مناسب با c5 یا e5.",
+     "سفید روی ستون c فشار می‌آورد."
+    ],
+    "en": [
+     "Holding d5 with ...e6 and ...c6.",
+     "Freeing the game at the right moment with ...c5 or ...e5.",
+     "White presses on the c-file."
+    ]
+   },
+   "eco": "D63",
+   "tableName": "Queen's Gambit Declined: Orthodox Defense, Main Line",
+   "moves": [
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "d7d5",
+     "san": "d5",
+     "fa": "سیاه مرکز را پس نمی‌دهد.",
+     "en": "Black holds his share of the centre."
+    },
+    {
+     "uci": "c2c4",
+     "san": "c4",
+     "fa": "گامبی وزیر: سفید پیاده‌ی c را پیشنهاد می‌دهد تا d5 را از مرکز دور کند. گامبی واقعی نیست، چون سیاه نمی‌تواند پیاده را نگه دارد.",
+     "en": "The Queen's Gambit: White offers the c-pawn to lure d5 away from the centre. Not a true gambit, since Black cannot keep the pawn."
+    },
+    {
+     "uci": "e7e6",
+     "san": "e6",
+     "fa": "سیاه نمی‌گیرد و d5 را محکم نگه می‌دارد: گامبی وزیرِ ردشده.",
+     "en": "Black declines and holds d5: the Queen's Gambit Declined."
+    },
+    {
+     "uci": "b1c3",
+     "san": "Nc3",
+     "fa": "فشار بیشتر روی d5.",
+     "en": "More pressure on d5."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "دفاع از d5.",
+     "en": "Defending d5."
+    },
+    {
+     "uci": "c1g5",
+     "san": "Bg5",
+     "fa": "اسب f6، یکی از مدافع‌های d5، به وزیر میخ می‌شود.",
+     "en": "The f6 knight, a defender of d5, is pinned to the queen."
+    },
+    {
+     "uci": "f8e7",
+     "san": "Be7",
+     "fa": "سیاه میخ را باز می‌کند.",
+     "en": "Black breaks the pin."
+    },
+    {
+     "uci": "e2e3",
+     "san": "e3",
+     "fa": "راه فیل f1 باز می‌شود.",
+     "en": "The f1 bishop is freed."
+    },
+    {
+     "uci": "e8g8",
+     "san": "O-O",
+     "fa": "شاه سیاه امن است.",
+     "en": "Black's king is safe."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش.",
+     "en": "Development."
+    },
+    {
+     "uci": "b8d7",
+     "san": "Nbd7",
+     "fa": "اسب به d7 می‌رود تا بعداً c5 یا e5 را پشتیبانی کند.",
+     "en": "The knight goes to d7 to back up ...c5 or ...e5 later."
+    },
+    {
+     "uci": "a1c1",
+     "san": "Rc1",
+     "fa": "رخ به ستون c می‌رود که بعد از تعویض‌ها باز خواهد شد.",
+     "en": "The rook goes to the c-file, which will open after exchanges."
+    },
+    {
+     "uci": "c7c6",
+     "san": "c6",
+     "fa": "d5 محکم‌تر می‌شود. سیاه منتظر لحظه‌ی مناسب برای آزاد کردن بازی است.",
+     "en": "d5 is reinforced. Black waits for the right moment to free the game."
+    }
+   ]
+  },
+  {
+   "id": "slav",
+   "group": "vs-d4",
+   "side": "b",
+   "name": {
+    "fa": "دفاع اسلاو",
+    "en": "Slav Defence"
+   },
+   "summary": {
+    "fa": "به محکمی گامبی وزیرِ ردشده، ولی بدون فیل محبوس. یکی از قابل‌اعتمادترین دفاع‌های امروز.",
+    "en": "As solid as the Queen's Gambit Declined, but without the shut-in bishop. One of today's most reliable defences."
+   },
+   "ideas": {
+    "fa": [
+     "d5 با پیاده‌ی c محکم می‌شود و راه فیل c8 باز می‌ماند.",
+     "فیل c8 پیش از e6 به f5 می‌رود.",
+     "گرفتن پیاده‌ی c4 در لحظه‌ای که سفید نمی‌تواند راحت پسش بگیرد."
+    ],
+    "en": [
+     "d5 is backed by the c-pawn, leaving the c8 bishop free.",
+     "The c8 bishop goes to f5 before ...e6.",
+     "Taking on c4 when White cannot easily win it back."
+    ]
+   },
+   "eco": "D18",
+   "tableName": "Slav Defense: Czech Variation, Classical System",
+   "moves": [
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "d7d5",
+     "san": "d5",
+     "fa": "سیاه مرکز را پس نمی‌دهد.",
+     "en": "Black holds his share of the centre."
+    },
+    {
+     "uci": "c2c4",
+     "san": "c4",
+     "fa": "گامبی وزیر.",
+     "en": "The Queen's Gambit."
+    },
+    {
+     "uci": "c7c6",
+     "san": "c6",
+     "fa": "سیاه d5 را با پیاده‌ی c محکم می‌کند؛ راه فیل c8 باز می‌ماند.",
+     "en": "Black backs d5 with the c-pawn; the c8 bishop stays free."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش.",
+     "en": "Development."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "گسترش و دفاع از d5.",
+     "en": "Development, defending d5."
+    },
+    {
+     "uci": "b1c3",
+     "san": "Nc3",
+     "fa": "فشار روی d5.",
+     "en": "Pressure on d5."
+    },
+    {
+     "uci": "d5c4",
+     "san": "dxc4",
+     "fa": "حالا که c6 بازی شده، سیاه پیاده را می‌گیرد و تهدید می‌کند با b5 نگهش دارد.",
+     "en": "Now that ...c6 is in, Black takes the pawn and threatens to hold it with ...b5."
+    },
+    {
+     "uci": "a2a4",
+     "san": "a4",
+     "fa": "سفید جلوی b5 را می‌گیرد.",
+     "en": "White stops ...b5."
+    },
+    {
+     "uci": "c8f5",
+     "san": "Bf5",
+     "fa": "فیل آزادانه بیرون می‌آید.",
+     "en": "The bishop comes out freely."
+    },
+    {
+     "uci": "e2e3",
+     "san": "e3",
+     "fa": "سفید آماده‌ی پس گرفتن c4 است.",
+     "en": "White prepares to take back on c4."
+    },
+    {
+     "uci": "e7e6",
+     "san": "e6",
+     "fa": "راه فیل f8 باز می‌شود.",
+     "en": "The f8 bishop is freed."
+    },
+    {
+     "uci": "f1c4",
+     "san": "Bxc4",
+     "fa": "پیاده پس گرفته شد؛ سفید مرکز دارد و سیاه فیل‌های فعال.",
+     "en": "The pawn is back; White has the centre, Black has active bishops."
+    },
+    {
+     "uci": "f8b4",
+     "san": "Bb4",
+     "fa": "فیل فعال می‌شود و اسب c3 را میخ می‌کند، که پیشروی e4 را سخت می‌کند.",
+     "en": "The bishop becomes active and pins the c3 knight, making e4 harder."
+    }
+   ]
+  },
+  {
+   "id": "kings-indian",
+   "group": "vs-d4",
+   "side": "b",
+   "name": {
+    "fa": "دفاع هندی شاه",
+    "en": "King's Indian Defence"
+   },
+   "summary": {
+    "fa": "دفاعی تهاجمی: سیاه مرکز را به سفید می‌دهد و بعد با e5 به آن ضربه می‌زند. گشایش محبوب فیشر و کاسپاروف.",
+    "en": "An attacking defence: Black lets White have the centre, then strikes at it with ...e5. A favourite of Fischer and Kasparov."
+   },
+   "ideas": {
+    "fa": [
+     "فیل فیانکتو روی g7 از دور به مرکز فشار می‌آورد.",
+     "ضربه به مرکز با e5.",
+     "وقتی مرکز بسته شد: سیاه با f5 در جناح شاه، سفید با c5 در جناح وزیر."
+    ],
+    "en": [
+     "The fianchettoed bishop on g7 presses on the centre from afar.",
+     "Striking at the centre with ...e5.",
+     "Once the centre closes: Black attacks with ...f5, White with c5."
+    ]
+   },
+   "eco": "E97",
+   "tableName": "King's Indian Defense: Orthodox Variation, Aronin-Taimanov Defense",
+   "moves": [
+    {
+     "uci": "d2d4",
+     "san": "d4",
+     "fa": "سفید مرکز را می‌گیرد.",
+     "en": "White takes the centre."
+    },
+    {
+     "uci": "g8f6",
+     "san": "Nf6",
+     "fa": "سیاه با اسب جلوی e4 را می‌گیرد و هنوز تصمیم نمی‌گیرد پیاده‌هایش کجا بروند.",
+     "en": "Black stops e4 with a piece and keeps his pawns flexible."
+    },
+    {
+     "uci": "c2c4",
+     "san": "c4",
+     "fa": "سفید در مرکز فضای بیشتری می‌گیرد.",
+     "en": "White gains more space in the centre."
+    },
+    {
+     "uci": "g7g6",
+     "san": "g6",
+     "fa": "آماده‌کردن فیانکتو: فیل از g7 روی قطر بلند به مرکز فشار خواهد آورد.",
+     "en": "Preparing a fianchetto: from g7 the bishop will press on the centre."
+    },
+    {
+     "uci": "b1c3",
+     "san": "Nc3",
+     "fa": "آماده‌کردن e4.",
+     "en": "Preparing e4."
+    },
+    {
+     "uci": "f8g7",
+     "san": "Bg7",
+     "fa": "فیل روی قطر بلند.",
+     "en": "The bishop on the long diagonal."
+    },
+    {
+     "uci": "e2e4",
+     "san": "e4",
+     "fa": "سفید مرکز بزرگی می‌سازد. سیاه عمداً اجازه داده تا بعداً به آن حمله کند.",
+     "en": "White builds a big centre. Black allowed it on purpose, planning to attack it."
+    },
+    {
+     "uci": "d7d6",
+     "san": "d6",
+     "fa": "e5 را آماده می‌کند.",
+     "en": "Preparing ...e5."
+    },
+    {
+     "uci": "g1f3",
+     "san": "Nf3",
+     "fa": "گسترش.",
+     "en": "Development."
+    },
+    {
+     "uci": "e8g8",
+     "san": "O-O",
+     "fa": "شاه پشت فیل g7 امن می‌شود.",
+     "en": "The king is safe behind the g7 bishop."
+    },
+    {
+     "uci": "f1e2",
+     "san": "Be2",
+     "fa": "گسترش آرام.",
+     "en": "Quiet development."
+    },
+    {
+     "uci": "e7e5",
+     "san": "e5",
+     "fa": "ضربه‌ی سیاه به مرکز.",
+     "en": "Black's strike at the centre."
+    },
+    {
+     "uci": "e1g1",
+     "san": "O-O",
+     "fa": "سفید هم قلعه می‌رود.",
+     "en": "White castles too."
+    },
+    {
+     "uci": "b8c6",
+     "san": "Nc6",
+     "fa": "فشار روی d4.",
+     "en": "Pressure on d4."
+    },
+    {
+     "uci": "d4d5",
+     "san": "d5",
+     "fa": "سفید مرکز را می‌بندد و با حمله به اسب c6 وقت می‌خرد.",
+     "en": "White closes the centre, gaining time on the c6 knight."
+    },
+    {
+     "uci": "c6e7",
+     "san": "Ne7",
+     "fa": "حالا بازی دو جناحه است: سفید با c5 در جناح وزیر، سیاه با f5 در جناح شاه به شاه سفید حمله می‌کند.",
+     "en": "Now the game splits: White attacks on the queenside with c5, Black goes for White's king with ...f5."
+    }
+   ]
+  }
+ ]
+}
