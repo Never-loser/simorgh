@@ -1,5 +1,6 @@
 package ir.simorgh.chess
 
+import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,7 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -46,6 +51,9 @@ private class Prefs(context: Context) {
     var thinkMs: Int
         get() = p.getInt("thinkMs", 2000)
         set(v) = p.edit().putInt("thinkMs", v).apply()
+    var theme: String
+        get() = p.getString("theme", "night") ?: "night"
+        set(v) = p.edit().putString("theme", v).apply()
 }
 
 private val STRENGTHS = listOf(800, 1200, 1600, 2000, 2400, 0)
@@ -63,6 +71,20 @@ fun SimorghApp() {
     val game = remember { Game(engine, scope) }
 
     var lang by remember { mutableStateOf(prefs.lang) }
+    remember { Ink.use(prefs.theme); 0 }
+
+    // The system bars follow the theme too, or a light theme would sit under
+    // a black status bar with white icons.
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        window.statusBarColor = Ink.Bg.toArgb()
+        window.navigationBarColor = Ink.Surface.toArgb()
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = Ink.isLight
+            isAppearanceLightNavigationBars = Ink.isLight
+        }
+    }
     val S = remember(lang) { Strings(lang) }
     var flipped by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
@@ -183,6 +205,17 @@ fun SimorghApp() {
                     Text(S.settings, color = Ink.Fg, fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
                     Spacer(Modifier.height(10.dp))
+                    Text(S.theme, color = Ink.Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        THEMES.forEach { th ->
+                            ThemeChip(th, if (lang == Lang.FA) th.nameFa else th.nameEn,
+                                      selected = Ink.palette.id == th.id, modifier = Modifier.weight(1f)) {
+                                Ink.use(th.id); prefs.theme = th.id
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
                     Text(S.strength, color = Ink.Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         STRENGTHS.forEach { elo ->
@@ -236,8 +269,10 @@ private fun EvalBar(white: Int?) {
             )
         }
         Ltr {
-            Row(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Ink.Trough)) {
-                Box(Modifier.weight(share).fillMaxHeight().background(Ink.LightSquare))
+            // White against Black, like the pieces themselves: fixed colours
+            // in every theme, or a light theme would draw pale on pale.
+            Row(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF232A33))) {
+                Box(Modifier.weight(share).fillMaxHeight().background(Color(0xFFEEF1F4)))
                 Box(Modifier.weight(1f - share).fillMaxHeight())
             }
         }
@@ -289,12 +324,38 @@ private fun Pill(label: String, onClick: () -> Unit) {
 private fun ActionButton(label: String, modifier: Modifier, primary: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
         modifier.height(44.dp).clip(RoundedCornerShape(8.dp))
-            .background(if (primary) Ink.AccentDim else Ink.Surface2)
-            .border(1.dp, if (primary) Ink.Accent.copy(alpha = 0.5f) else Ink.Border, RoundedCornerShape(8.dp))
+            .background(if (primary) Ink.Accent else Ink.Surface2)
+            .border(1.dp, if (primary) Ink.Accent else Ink.Border, RoundedCornerShape(8.dp))
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = if (enabled) Ink.Fg else Ink.Muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = when { !enabled -> Ink.Muted; primary -> Ink.OnAccent; else -> Ink.Fg },
+             fontSize = 13.sp, fontWeight = if (primary) FontWeight.SemiBold else FontWeight.Medium)
+    }
+}
+
+/** A theme, shown as a 2x2 patch of its own board so it can be judged before it is picked. */
+@Composable
+private fun ThemeChip(th: Palette, name: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.clip(RoundedCornerShape(9.dp))
+            .background(Ink.Surface2)
+            .border(if (selected) 2.dp else 1.dp, if (selected) Ink.Accent else Ink.Border, RoundedCornerShape(9.dp))
+            .clickable(onClick = onClick).padding(vertical = 9.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Column(Modifier.size(28.dp).clip(RoundedCornerShape(5.dp))) {
+            Row(Modifier.weight(1f)) {
+                Box(Modifier.weight(1f).fillMaxHeight().background(th.lightSquare))
+                Box(Modifier.weight(1f).fillMaxHeight().background(th.darkSquare))
+            }
+            Row(Modifier.weight(1f)) {
+                Box(Modifier.weight(1f).fillMaxHeight().background(th.darkSquare))
+                Box(Modifier.weight(1f).fillMaxHeight().background(th.lightSquare))
+            }
+        }
+        Text(name, color = if (selected) Ink.Fg else Ink.FgDim, fontSize = 10.5.sp, maxLines = 1)
     }
 }
 
@@ -307,8 +368,8 @@ private fun Chip(label: String, sub: String?, selected: Boolean, modifier: Modif
             .clickable(onClick = onClick).padding(vertical = 10.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Ltr { Text(label, color = if (selected) Ink.Fg else Ink.FgDim, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
-        sub?.let { Text(it, color = if (selected) Ink.LightSquare else Ink.Muted, fontSize = 10.sp) }
+        Ltr { Text(label, color = if (selected) Ink.OnAccentDim else Ink.FgDim, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+        sub?.let { Text(it, color = if (selected) Ink.OnAccentDim.copy(alpha = 0.75f) else Ink.Muted, fontSize = 10.sp) }
     }
 }
 

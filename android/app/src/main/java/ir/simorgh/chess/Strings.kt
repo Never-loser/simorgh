@@ -25,6 +25,7 @@ class Strings(val lang: Lang) {
     val undo get() = t("برگشت", "Undo")
     val flip get() = t("چرخاندن تخته", "Flip board")
     val settings get() = t("تنظیمات", "Settings")
+    val theme get() = t("تم", "Theme")
     val langToggle get() = t("English", "فارسی")
     val thinking get() = t("در حال فکر کردن…", "Thinking…")
     val yourMove get() = t("نوبت شماست", "Your move")

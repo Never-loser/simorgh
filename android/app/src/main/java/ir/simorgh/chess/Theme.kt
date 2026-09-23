@@ -1,28 +1,48 @@
 package ir.simorgh.chess
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 
 /**
- * The desktop front end's palette, unchanged. The two apps are the same
- * program with different shells, so they should not look like strangers.
+ * The colours the whole app draws with, read from the current theme.
+ *
+ * Every property reads a snapshot state, so a composable that uses, say,
+ * Ink.Surface is recomposed when the theme changes -- switching themes
+ * repaints the app without any screen having to know themes exist. The
+ * palettes themselves are generated from the desktop app (Themes.kt).
  */
 object Ink {
-    val Bg = Color(0xFF0E1116)
-    val Surface = Color(0xFF161B22)
-    val Surface2 = Color(0xFF1C232C)
-    val Border = Color(0xFF2B3440)
-    val Accent = Color(0xFF4C9AFF)
-    val AccentDim = Color(0xFF1F4F8F)
-    val Fg = Color(0xFFE6EDF3)
-    val FgDim = Color(0xFFA9B6C3)
-    val Muted = Color(0xFF6E7D8D)
-    val Ok = Color(0xFF3FB950)
-    val Warn = Color(0xFFD29922)
-    val Danger = Color(0xFFF85149)
+    var palette: Palette by mutableStateOf(THEMES.first())
 
-    val LightSquare = Color(0xFFC8CFD6)
-    val DarkSquare = Color(0xFF41586E)
-    val Selected = Color(0xFF6F9FD8)
-    val LastMove = Color(0xFF7F8F4E)
-    val Trough = Color(0xFF10161D)
+    val isLight: Boolean get() = palette.light
+
+    val Bg: Color get() = palette.bg
+    val Trough: Color get() = palette.trough
+    val Surface: Color get() = palette.surface
+    val Surface2: Color get() = palette.surface2
+    val Border: Color get() = palette.border
+    val Accent: Color get() = palette.accent
+    val AccentDim: Color get() = palette.accentDim
+    val OnAccent: Color get() = palette.onAccent
+    val OnAccentDim: Color get() = palette.onAccentDim
+    val Fg: Color get() = palette.fg
+    val FgDim: Color get() = palette.fgDim
+    val Muted: Color get() = palette.muted
+    val Ok: Color get() = palette.ok
+    val Warn: Color get() = palette.warn
+    val Danger: Color get() = palette.danger
+
+    val LightSquare: Color get() = palette.lightSquare
+    val DarkSquare: Color get() = palette.darkSquare
+    val CoordOnLight: Color get() = palette.coordOnLight
+    val CoordOnDark: Color get() = palette.coordOnDark
+    /** Translucent: drawn over the square colour, so it reads on any board. */
+    val Selected: Color get() = palette.selected
+    val LastMove: Color get() = palette.lastMove
+
+    fun use(id: String) {
+        palette = THEMES.firstOrNull { it.id == id } ?: THEMES.first()
+    }
 }
