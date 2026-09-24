@@ -1,6 +1,7 @@
 package ir.simorgh.chess
 
 import android.content.Context
+import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -87,7 +88,10 @@ class Engine(private val context: Context) {
         if (process != null) return@exclusive
 
         val binary = File(context.applicationInfo.nativeLibraryDir, "libsimorgh.so")
-        check(binary.exists()) { "engine missing at ${binary.absolutePath}" }
+        // What the phone runs decides which jniLibs folder was installed;
+        // say so in any failure, it is the first thing a report needs.
+        val abis = Build.SUPPORTED_ABIS.joinToString()
+        check(binary.exists()) { "no engine for this phone ($abis)" }
 
         // The engine defaults to data/... relative to its working directory,
         // which means nothing on Android. Copy the data next to it in app
@@ -110,7 +114,11 @@ class Engine(private val context: Context) {
         reader = p.inputStream.bufferedReader()
 
         send("uci")
-        readUntil("uciok")
+        // A binary that cannot run on this phone starts and dies at once;
+        // without this check the app would carry on talking to nothing.
+        check(readUntil("uciok").startsWith("uciok")) {
+            "engine did not start (${runCatching { p.exitValue() }.getOrNull()?.let { "exit $it" } ?: "no answer"}; $abis)"
+        }
         send("weights load ${weights.absolutePath}")
         readUntil("weights")
         send("setoption name Book File value ${book.absolutePath}")

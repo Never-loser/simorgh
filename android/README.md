@@ -8,22 +8,29 @@ they sum to exactly what it searched on.
 ## How the engine gets onto the phone
 
 The engine is not ported to Android and not wrapped in JNI. It is the same
-C++ program, compiled for arm64 with the NDK and shipped inside the APK as
-`app/src/main/jniLibs/arm64-v8a/libsimorgh.so`. The name is the whole
-trick: Android extracts a `lib*.so` from an APK with the execute bit set,
-which is what lets the app start it as a child process and talk UCI to it
-over stdin and stdout — the same conversation the desktop front end has.
-Nothing in `cpp/` knows it is on a phone.
+C++ program, compiled with the NDK and shipped inside the APK as
+`app/src/main/jniLibs/<abi>/libsimorgh.so` for three ABIs: `arm64-v8a`
+(most phones), `armeabi-v7a` (phones running 32-bit Android, which many
+cheap ones do even on a 64-bit CPU) and `x86_64` (emulators, Chromebooks).
+The name is the whole trick: Android extracts a `lib*.so` from an APK with
+the execute bit set, which is what lets the app start it as a child
+process and talk UCI to it over stdin and stdout — the same conversation
+the desktop front end has. Nothing in `cpp/` knows it is on a phone.
 
-To rebuild that binary after an engine change:
+To rebuild the binaries after an engine change, for each of the three ABIs:
 
 ```
-cmake -S cpp -B cpp/build-android \
+cmake -S cpp -B cpp/build-android/$ABI -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
-  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 -DCMAKE_BUILD_TYPE=Release
-cmake --build cpp/build-android
-cp cpp/build-android/simorgh android/app/src/main/jniLibs/arm64-v8a/libsimorgh.so
+  -DANDROID_ABI=$ABI -DANDROID_PLATFORM=android-24 -DCMAKE_BUILD_TYPE=Release
+cmake --build cpp/build-android/$ABI
+cp cpp/build-android/$ABI/simorgh android/app/src/main/jniLibs/$ABI/libsimorgh.so
 ```
+
+All three are rebuilt together. The APK is limited to exactly these ABIs
+(`abiFilters` in `app/build.gradle.kts`): a phone whose ABI has no engine
+must not be able to install the app, rather than install it and report
+the engine unavailable.
 
 `bench 9` on the desktop and on the phone visit exactly the same 1,330,953
 nodes; a one-centipawn difference in evaluation would have changed that

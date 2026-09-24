@@ -15,6 +15,15 @@ android {
         targetSdk = 34
         versionCode = 3
         versionName = "0.2.0"
+
+        // Exactly the ABIs the engine is built for (jniLibs/<abi>/). A
+        // library dependency ships its own .so for x86 too; left in, it made
+        // the APK claim x86, and more to the point it once made a phone
+        // running 32-bit Android install the app from a 32-bit folder that
+        // held no engine -- "engine unavailable" on a working install.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
     }
 
     // The engine binary is prebuilt with the NDK and checked in under

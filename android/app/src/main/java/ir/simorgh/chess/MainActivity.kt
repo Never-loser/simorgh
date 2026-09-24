@@ -146,6 +146,14 @@ fun SimorghApp() {
                         Text(S.depth, color = Ink.Muted, fontSize = 12.sp)
                     }
                 }
+                // The reason, not just "unavailable": a screenshot of this is
+                // what a bug report from someone else's phone needs.
+                game.error?.let {
+                    Ltr {
+                        Text(it, color = Ink.Muted, fontSize = 11.sp,
+                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp))
+                    }
+                }
 
                 // ---- board, always LTR inside whichever layout
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
