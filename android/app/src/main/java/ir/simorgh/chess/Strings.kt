@@ -148,6 +148,8 @@ class Strings(val lang: Lang) {
             "mobility.bishop" to "تحرک فیل‌ها",
             "mobility.rook" to "تحرک رخ‌ها",
             "mobility.queen" to "تحرک وزیر",
+            "king.shield" to "سپر پیاده‌ای شاه",
+            "king.attack" to "حمله به شاه",
             "rounding" to "گِردکردن",
         )
         val TERMS_EN = mapOf(
@@ -165,6 +167,8 @@ class Strings(val lang: Lang) {
             "mobility.bishop" to "bishop mobility",
             "mobility.rook" to "rook mobility",
             "mobility.queen" to "queen mobility",
+            "king.shield" to "king's pawn shield",
+            "king.attack" to "attack on the king",
             "rounding" to "rounding",
         )
     }

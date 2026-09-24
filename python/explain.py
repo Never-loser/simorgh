@@ -50,6 +50,8 @@ FA = {
     "mobility.bishop": "تحرک فیل‌ها",
     "mobility.rook": "تحرک رخ‌ها",
     "mobility.queen": "تحرک وزیر",
+    "king.shield": "سپر پیاده‌ای شاه",
+    "king.attack": "حمله به شاه",
     "rounding": "گِردکردن (تقسیم صحیح در تناسب مرحله)",
 }
 
@@ -67,6 +69,8 @@ EN = {
     "mobility.bishop": "bishop mobility",
     "mobility.rook": "rook mobility",
     "mobility.queen": "queen mobility",
+    "king.shield": "king's pawn shield",
+    "king.attack": "attack on the king",
 }
 
 WHITE_FA, BLACK_FA = "سفید", "سیاه"

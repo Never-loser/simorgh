@@ -24,6 +24,8 @@ export const TERM_FA: Record<string, string> = {
   "mobility.bishop": "تحرک فیل‌ها",
   "mobility.rook": "تحرک رخ‌ها",
   "mobility.queen": "تحرک وزیر",
+  "king.shield": "سپر پیاده‌ای شاه",
+  "king.attack": "حمله به شاه",
   rounding: "گِردکردن (تناسب مرحله)",
 };
 
@@ -47,6 +49,8 @@ export const TERM_EN: Record<string, string> = {
   "mobility.bishop": "bishop mobility",
   "mobility.rook": "rook mobility",
   "mobility.queen": "queen mobility",
+  "king.shield": "king's pawn shield",
+  "king.attack": "attack on the king",
   rounding: "tapering rounding",
 };
 
