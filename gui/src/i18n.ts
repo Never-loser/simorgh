@@ -20,6 +20,10 @@ export const TERM_FA: Record<string, string> = {
   "pawns.isolated": "پیاده منزوی",
   "pawns.doubled": "پیاده دوتایی",
   "bishop.pair": "جفت فیل",
+  "mobility.knight": "تحرک اسب‌ها",
+  "mobility.bishop": "تحرک فیل‌ها",
+  "mobility.rook": "تحرک رخ‌ها",
+  "mobility.queen": "تحرک وزیر",
   rounding: "گِردکردن (تناسب مرحله)",
 };
 
@@ -39,6 +43,10 @@ export const TERM_EN: Record<string, string> = {
   "pawns.isolated": "isolated pawns",
   "pawns.doubled": "doubled pawns",
   "bishop.pair": "bishop pair",
+  "mobility.knight": "knight mobility",
+  "mobility.bishop": "bishop mobility",
+  "mobility.rook": "rook mobility",
+  "mobility.queen": "queen mobility",
   rounding: "tapering rounding",
 };
 

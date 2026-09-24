@@ -144,6 +144,10 @@ class Strings(val lang: Lang) {
             "pawns.passed" to "پیاده گذشته", "pawns.isolated" to "پیاده منزوی",
             "pawns.doubled" to "پیاده دوتایی",
             "bishop.pair" to "جفت فیل",
+            "mobility.knight" to "تحرک اسب‌ها",
+            "mobility.bishop" to "تحرک فیل‌ها",
+            "mobility.rook" to "تحرک رخ‌ها",
+            "mobility.queen" to "تحرک وزیر",
             "rounding" to "گِردکردن",
         )
         val TERMS_EN = mapOf(
@@ -157,6 +161,10 @@ class Strings(val lang: Lang) {
             "pawns.passed" to "passed pawns", "pawns.isolated" to "isolated pawns",
             "pawns.doubled" to "doubled pawns",
             "bishop.pair" to "bishop pair",
+            "mobility.knight" to "knight mobility",
+            "mobility.bishop" to "bishop mobility",
+            "mobility.rook" to "rook mobility",
+            "mobility.queen" to "queen mobility",
             "rounding" to "rounding",
         )
     }
