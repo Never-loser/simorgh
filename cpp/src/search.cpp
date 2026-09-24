@@ -746,10 +746,7 @@ SearchInfo Search::run(const Position& root, const SearchLimits& limits,
         info.pv = pv;
 
         const int64_t ms = now_ms() - startTime_;
-        const std::string scoreStr =
-            info.score > MATE_BOUND ? "mate " + std::to_string((MATE - info.score + 1) / 2)
-          : info.score < -MATE_BOUND ? "mate -" + std::to_string((MATE + info.score) / 2)
-          : "cp " + std::to_string(info.score);
+        const std::string scoreStr = score_to_uci(info.score);
 
         std::cout << "info depth " << depth << " score " << scoreStr
                   << " nodes " << nodes_ << " time " << ms
@@ -768,4 +765,10 @@ SearchInfo Search::run(const Position& root, const SearchLimits& limits,
         info.best = pick_noisy_move(completed, noise);
 
     return info;
+}
+
+std::string score_to_uci(int score) {
+    if (score > MATE_BOUND) return "mate " + std::to_string((MATE - score + 1) / 2);
+    if (score < -MATE_BOUND) return "mate -" + std::to_string((MATE + score) / 2);
+    return "cp " + std::to_string(score);
 }

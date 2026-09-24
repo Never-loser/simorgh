@@ -5,6 +5,7 @@
 #include <atomic>
 #include <cstdint>
 #include <random>
+#include <string>
 #include <vector>
 
 constexpr int SKILL_MAX = 20;
@@ -19,6 +20,10 @@ struct SearchLimits {
     // strength control; this only adds variety and small mistakes.
     int noise = 0;
 };
+
+// A search score as UCI writes it: "cp 35", or "mate 3" / "mate -2" in
+// moves for a forced mate.
+std::string score_to_uci(int score);
 
 struct SearchInfo {
     Move best;

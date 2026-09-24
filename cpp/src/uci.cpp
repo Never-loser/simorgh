@@ -507,6 +507,37 @@ void loop() {
                       << bookPath << " (" << Book::position_count()
                       << " positions from " << Book::total_games()
                       << " games)" << std::endl;
+        } else if (cmd == "analyse") {
+            // analyse [movetime ms] [depth n] -- judge the current position
+            // at full strength, for the front ends' coach: no book, no
+            // strength cap, no deliberate noise, whatever the game is set
+            // to. Answers when done, on one line:
+            //   analysis depth 12 score cp 35 best e2e4 pv e2e4 e7e5 ...
+            // or `analysis none` when there is no legal move.
+            stop_search();
+            SearchLimits limits;
+            limits.movetime = 300;
+            std::string tok;
+            while (iss >> tok) {
+                if (tok == "movetime") iss >> limits.movetime;
+                else if (tok == "depth") { iss >> limits.depth; limits.movetime = 0; }
+            }
+            MoveList ml;
+            generate_moves(pos, ml);
+            bool anyLegal = false;
+            for (int i = 0; i < ml.count && !anyLegal; ++i)
+                anyLegal = is_legal(pos, ml.moves[i]);
+            if (!anyLegal) {
+                std::cout << "analysis none" << std::endl;
+            } else {
+                searcher.clear_stop();
+                const SearchInfo r = searcher.run(pos, limits, gameKeys);
+                std::cout << "analysis depth " << r.depth << " score "
+                          << score_to_uci(r.score) << " best "
+                          << move_to_uci(r.best) << " pv";
+                for (const Move& m : r.pv) std::cout << ' ' << move_to_uci(m);
+                std::cout << std::endl;
+            }
         } else if (cmd == "opening") {
             print_opening();
         } else if (cmd == "book") {
