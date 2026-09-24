@@ -63,6 +63,9 @@ private class Prefs(context: Context) {
     var game: String?
         get() = p.getString("game", null)
         set(v) = p.edit().putString("game", v).apply()
+    var coach: Boolean
+        get() = p.getBoolean("coach", true)
+        set(v) = p.edit().putBoolean("coach", v).apply()
 }
 
 private val STRENGTHS = listOf(800, 1200, 1600, 2000, 2400, 0)
@@ -123,6 +126,7 @@ fun SimorghApp() {
     LaunchedEffect(Unit) {
         game.setStrength(prefs.elo)
         game.setThinkTime(prefs.thinkMs)
+        game.coachOn = prefs.coach
         game.start()
     }
     // Black at the bottom when playing Black, unless the player flipped it back.
@@ -191,19 +195,32 @@ fun SimorghApp() {
 
                 // ---- board, always LTR inside whichever layout
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    val shown = if (game.gameReview != null) game.reviewState else null
                     Board(
-                        fen = game.state?.fen ?: START_FEN,
-                        legal = game.state?.legal.orEmpty(),
-                        interactive = game.playersTurn,
+                        fen = shown?.fen ?: game.state?.fen ?: START_FEN,
+                        legal = if (shown != null) emptySet() else game.state?.legal.orEmpty(),
+                        interactive = shown == null && game.playersTurn,
                         flipped = flipped,
-                        lastMove = game.lastMove,
-                        stm = game.stm,
+                        lastMove = if (shown != null) game.moves.getOrNull(game.reviewSel)?.let { it.substring(0, 2) to it.substring(2, 4) }
+                                   else game.lastMove,
+                        stm = shown?.status?.get("stm") ?: game.stm,
                         strings = S,
                         onMove = game::play,
                     )
                 }
                 if (game.timeControl.timed) ClockRow(game, bottomSide)
                 OpeningLine(game.state?.opening, atStart = game.moves.isEmpty(), S = S)
+                when {
+                    game.reviewing -> ReviewBar(game, S)
+                    game.coachOn && (game.coaching || game.lastReview != null) -> CoachStrip(game, S)
+                    game.gameOver && game.moves.size >= 2 -> Text(
+                        S.reviewOffer, color = Ink.Fg, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 6.dp)
+                            .clip(RoundedCornerShape(8.dp)).background(Ink.Surface)
+                            .border(1.dp, Ink.Accent, RoundedCornerShape(8.dp)).clickable { game.startReview() }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
 
                 // ---- everything below the board scrolls
                 Column(
@@ -211,10 +228,15 @@ fun SimorghApp() {
                         .padding(horizontal = 12.dp).padding(top = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                  if (game.gameReview != null) {
+                    ReviewPanel(game, S)
+                  } else {
                     EvalBar(game.state?.breakdown?.white)
+                    if (game.coachOn) CoachCard(game.lastReview, S, pending = game.coaching)
                     ExplainPanel(game.state?.breakdown, S)
                     ExplorerPanel(game.state?.book.orEmpty(), game.playersTurn, S, game::play)
-                    MovesPanel(game.sanMoves, S)
+                    MovesPanel(game.sanMoves, S, game.reviews)
+                  }
                     Spacer(Modifier.height(8.dp))
                 }
 
@@ -281,6 +303,20 @@ fun SimorghApp() {
                         TIME_CONTROLS.forEach { tc ->
                             Chip(label = tc.label, sub = null, selected = game.timeControl.id == tc.id,
                                  modifier = Modifier.weight(1f)) { game.playAtTimeControl(tc); showSettings = false }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                    Text(S.coachTitle, color = Ink.Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Chip(label = S.on, sub = null, selected = game.coachOn, modifier = Modifier.weight(1f)) {
+                            game.coachOn = true; prefs.coach = true
+                        }
+                        Chip(label = S.off, sub = null, selected = !game.coachOn, modifier = Modifier.weight(1f)) {
+                            game.coachOn = false; prefs.coach = false
+                        }
+                        Chip(label = S.reviewGame, sub = null, selected = false, modifier = Modifier.weight(1.4f)) {
+                            if (game.moves.size >= 2) { game.startReview(); showSettings = false }
                         }
                     }
 
@@ -375,7 +411,7 @@ private fun EvalBar(white: Int?) {
 }
 
 @Composable
-private fun MovesPanel(moves: List<String>, S: Strings) {
+private fun MovesPanel(moves: List<String>, S: Strings, reviews: Map<Int, Coach.Review> = emptyMap()) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Ink.Surface)
             .border(1.dp, Ink.Border, RoundedCornerShape(10.dp)).padding(14.dp),
@@ -396,8 +432,8 @@ private fun MovesPanel(moves: List<String>, S: Strings) {
                             .padding(horizontal = 8.dp, vertical = 5.dp),
                     ) {
                         Text("${i + 1}.", color = Ink.Muted, fontSize = 12.5.sp, modifier = Modifier.width(30.dp))
-                        Text(pair[0], color = Ink.Fg, fontSize = 13.sp, modifier = Modifier.width(72.dp))
-                        Text(pair.getOrNull(1) ?: "", color = Ink.Fg, fontSize = 13.sp)
+                        Text(pair[0] + Coach.glyph(reviews[i * 2]?.verdict), color = Ink.Fg, fontSize = 13.sp, modifier = Modifier.width(72.dp))
+                        Text((pair.getOrNull(1) ?: "") + Coach.glyph(reviews[i * 2 + 1]?.verdict), color = Ink.Fg, fontSize = 13.sp)
                     }
                 }
             }

@@ -95,6 +95,30 @@ class Strings(val lang: Lang) {
     )
     val pgnEmpty get() = t("حرکتی در متن کلیپ‌بورد پیدا نشد.", "No moves found in the clipboard text.")
     val pgnBadMove get() = t("حرکت {n} {move} در آن وضعیت قانونی نیست.", "Move {n} {move} is not legal in that position.")
+    val coachTitle get() = t("مربی", "Coach")
+    val on get() = t("روشن", "On")
+    val off get() = t("خاموش", "Off")
+    val coachEmpty get() = t("بعد از هر حرکت شما، مربی می‌گوید آن حرکت چقدر خوب بود، بهترش چه بود و چرا.",
+                             "After each of your moves the coach says how good it was, what was better, and why.")
+    val coachThinking get() = t("مربی در حال سنجیدن حرکت شما…", "The coach is judging your move…")
+    val coachLoss get() = t("از شانس بردتان کم شد", "Win chance given away")
+    val coachBetter get() = t("بهتر بود", "Better was")
+    val coachReply get() = t("جواب موتور", "Engine's reply")
+    val coachWhy get() = t("چرا بدتر است، نسبت به بهترین خط", "Why it is worse than the best line")
+    val coachBestNote get() = t("همان حرکتی که موتور هم انتخاب می‌کرد.", "The move the engine would have played too.")
+    val coachNoReason get() = t("فرق این دو خط در عمق محاسبه است، نه در یکی از جمله‌های ارزیابی.",
+                                "The two lines differ in calculation, not in any one evaluation term.")
+    val verdictBest get() = t("بهترین حرکت", "Best move")
+    val verdictGood get() = t("حرکت خوب", "Good move")
+    val verdictInaccuracy get() = t("نادقیق", "Inaccuracy")
+    val verdictMistake get() = t("اشتباه", "Mistake")
+    val verdictBlunder get() = t("اشتباه بزرگ", "Blunder")
+    val reviewGame get() = t("مرور بازی", "Review game")
+    val reviewTitle get() = t("مرور بازی", "Game review")
+    val reviewClose get() = t("بازگشت", "Back")
+    val reviewRunning get() = t("سنجیدن حرکت‌ها…", "Judging the moves…")
+    val reviewOffer get() = t("بازی تمام شد — مرورش کنیم؟", "Game over — review it?")
+    val accuracy get() = t("دقت", "Accuracy")
     val evalHint get() = t(
         "جمع همه‌ی جمله‌ها دقیقاً همان عددی است که موتور روی آن حساب می‌کند.",
         "Every term sums to exactly the number the engine searched on.",

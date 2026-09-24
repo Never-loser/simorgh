@@ -52,6 +52,20 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
     var thinkMs by mutableStateOf(2000); private set         // depth ~13 on a mid phone
     var notice by mutableStateOf<String?>(null)
 
+    // ---------------------------------------------------------- coach
+    var coachOn by mutableStateOf(true)
+    var coaching by mutableStateOf(false); private set
+    /** The player's moves judged so far, by ply. */
+    var reviews by mutableStateOf(mapOf<Int, Coach.Review>()); private set
+    val lastReview: Coach.Review? get() = reviews.filterKeys { it < moves.size }.maxByOrNull { it.key }?.value
+
+    // ---------------------------------------------------------- game review
+    var gameReview by mutableStateOf<Coach.GameReview?>(null); private set
+    var reviewProgress by mutableStateOf<Pair<Int, Int>?>(null); private set
+    var reviewSel by mutableStateOf(-1); private set
+    var reviewState by mutableStateOf<Engine.State?>(null); private set
+    val reviewing: Boolean get() = gameReview != null || reviewProgress != null
+
     // ---------------------------------------------------------- clock
     var timeControl by mutableStateOf(TIME_CONTROLS[0]); private set
     private var remainW by mutableStateOf(0L)   // ms, as of the start of the turn
@@ -114,7 +128,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
             else -> null
         }
 
-    val playersTurn: Boolean get() = ready && !thinking && !gameOver && stm == playerColour
+    val playersTurn: Boolean get() = ready && !thinking && !coaching && !reviewing && !gameOver && stm == playerColour
     val lastMove: Pair<String, String>?
         get() = moves.lastOrNull()?.let { it.substring(0, 2) to it.substring(2, 4) }
 
@@ -170,11 +184,13 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
     fun newGame(colour: String) {
         if (thinking) return
         scope.launch {
+            closeReview()
             playerColour = colour
             learned = false
             info = null
             moves = emptyList()
             sanMoves = emptyList()
+            reviews = emptyMap()
             resetClock()
             engine.newGame()
             sync()
@@ -200,6 +216,8 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
             info = null
             timeControl = TIME_CONTROLS[0]
             resetClock()
+            closeReview()
+            reviews = emptyMap()
             engine.newGame()
             moves = line
             sanMoves = sans
@@ -216,9 +234,12 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
         if (move !in legal) return
         scope.launch {
             clockStop(playerColour)
+            val line = moves
+            val sansBefore = state?.san.orEmpty()
             push(move)
             sync()
             save()
+            if (coachOn) coachMove(line, move, sansBefore)
             engineTurnIfNeeded()
         }
     }
@@ -230,6 +251,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
         scope.launch {
             moves = moves.dropLast(drop)
             sanMoves = sanMoves.dropLast(drop)
+            reviews = reviews.filterKeys { it < moves.size }
             learned = false
             sync()
             save()
@@ -280,6 +302,8 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
             sans += hit.value
         }
         playerColour = if (line.size % 2 == 0) "w" else "b"
+        closeReview()
+        reviews = emptyMap()
         learned = true     // someone else's game: not the engine's to learn from
         info = null
         timeControl = TIME_CONTROLS[0]
@@ -290,6 +314,62 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
         sync()
         save()
         return null
+    }
+
+    // ---------------------------------------------------------- coach
+    /**
+     * Judges the player's move between it and the engine's reply, while
+     * neither clock runs, so it costs nobody time.
+     */
+    private suspend fun coachMove(line: List<String>, move: String, sansBefore: Map<String, String>) {
+        coaching = true
+        try {
+            val before = engine.analyse(line) ?: return
+            val ended = state?.status?.get("legal") == "0"
+            val after = if (ended) null else engine.analyse(line + move)
+            val end = if (ended) (if (inCheck) 10000 else 0) else null
+            val replySan = after?.let { state?.san?.get(it.best) ?: it.best }
+            var r = Coach.judge(line.size, move, sansBefore[move] ?: move, sansBefore[before.best] ?: before.best,
+                                replySan, before, after, end)
+            if (with(Coach) { r.verdict.bad }) r = r.copy(why = Coach.why(engine, line, r))
+            reviews = reviews + (r.ply to r)
+        } finally {
+            coaching = false
+        }
+    }
+
+    fun startReview() {
+        if (thinking || coaching || reviewing || moves.size < 2) return
+        scope.launch {
+            reviewProgress = 0 to moves.size + 1
+            try {
+                gameReview = Coach.reviewGame(engine, moves, sanMoves, 200) { d, t -> reviewProgress = d to t }
+            } finally {
+                reviewProgress = null
+            }
+            // Open on the worst move, which is usually what a review is for.
+            gameReview?.plies?.maxByOrNull { it.loss }?.let { selectReview(it.ply) }
+        }
+    }
+
+    fun selectReview(ply: Int) {
+        val g = gameReview ?: return
+        if (ply < 0 || ply >= g.plies.size) return
+        scope.launch {
+            reviewSel = ply
+            reviewState = engine.refresh(moves.take(ply + 1))
+            val p = g.plies[ply]
+            if (p.why == null && with(Coach) { p.verdict.bad }) {
+                val filled = p.copy(why = Coach.why(engine, moves.take(ply), p))
+                gameReview = Coach.GameReview(g.plies.toMutableList().also { it[ply] = filled }, g.evals)
+            }
+        }
+    }
+
+    fun closeReview() {
+        gameReview = null
+        reviewState = null
+        reviewSel = -1
     }
 
     // ---------------------------------------------------------- saving

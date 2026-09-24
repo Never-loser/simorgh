@@ -334,6 +334,19 @@ class Engine(private val context: Context) {
      */
     fun stopSearch() = send("stop")
 
+    /** A full-strength judgement of the position after `moves`, for the coach. */
+    suspend fun analyse(moves: List<String>, movetimeMs: Int = 250): Coach.Analysis? = exclusive {
+        position(moves)
+        send("analyse movetime $movetimeMs")
+        Coach.parse(readUntil("analysis"))
+    }
+
+    /** The evaluation breakdown of the position after `moves`. */
+    suspend fun explainAt(moves: List<String>): Breakdown? = exclusive {
+        position(moves)
+        readExplain()
+    }
+
     /** UCI -> SAN for every legal move after `moves`; for reading PGN. */
     suspend fun sanMap(moves: List<String>): Map<String, String> = exclusive {
         position(moves)
