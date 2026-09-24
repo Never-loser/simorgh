@@ -557,6 +557,11 @@ the same way (`tune ... king`, error 0.129111 -> 0.127666), and measured
 the same way against the engine with mobility but without king safety:
 +247 =422 -131, **+51 Elo** (95% interval +34 to +67).
 
+Gains measured one step at a time do not simply add up, so the two were
+also measured together: the engine with both, against the engine with
+neither, same conditions, 800 games: +303 =364 -133, **+75 Elo** (95%
+interval +57 to +93).
+
 Beyond the standard UCI commands, the engine understands `d` (print the
 board and FEN), `legal` (list legal moves), `status` (check / legal-move
 count / halfmove clock / side to move), `eval` (static evaluation),
