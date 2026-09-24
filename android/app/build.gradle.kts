@@ -13,8 +13,8 @@ android {
         applicationId = "ir.simorgh.chess"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.2.1"
 
         // Exactly the ABIs the engine is built for (jniLibs/<abi>/). A
         // library dependency ships its own .so for x86 too; left in, it made
