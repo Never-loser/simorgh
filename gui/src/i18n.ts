@@ -173,6 +173,13 @@ const UI: Record<Lang, UIStrings> = {
     verdict_inaccuracy: "نادقیق",
     verdict_mistake: "اشتباه",
     verdict_blunder: "اشتباه بزرگ",
+    reviewGame: "مرور بازی",
+    reviewTitle: "مرور بازی",
+    reviewClose: "بازگشت به بازی",
+    reviewRunning: "موتور همه‌ی حرکت‌ها را می‌سنجد…",
+    reviewMove: "حرکت",
+    reviewOffer: "بازی تمام شد — مرورش کنیم؟",
+    accuracy: "دقت",
   },
   en: {
     appTitle: "Simorgh",
@@ -285,6 +292,13 @@ const UI: Record<Lang, UIStrings> = {
     verdict_inaccuracy: "Inaccuracy",
     verdict_mistake: "Mistake",
     verdict_blunder: "Blunder",
+    reviewGame: "Review game",
+    reviewTitle: "Game review",
+    reviewClose: "Back to the game",
+    reviewRunning: "The engine is judging every move…",
+    reviewMove: "Move",
+    reviewOffer: "Game over — review it?",
+    accuracy: "Accuracy",
   },
 };
 

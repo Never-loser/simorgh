@@ -149,3 +149,58 @@ export async function explainWhy(engine: Engine, line: string[], r: MoveReview):
     .sort((x, y) => x.cp - y.cp)
     .slice(0, 3);
 }
+
+export interface GameReview {
+  plies: MoveReview[];
+  evals: number[]; // White's view of each position, from the start to the end
+}
+
+/**
+ * Judge every move of a game: one analysis per position, each move judged
+ * from the analyses on either side of it. `onProgress` gets the number of
+ * positions done out of the total.
+ */
+export async function reviewGame(
+  engine: Engine,
+  moves: string[],
+  sans: string[],
+  movetime: number,
+  onProgress: (done: number, total: number) => void
+): Promise<GameReview> {
+  const total = moves.length + 1;
+  const found: (Analysis | null)[] = [];
+  const bestSans: string[] = [];
+  for (let i = 0; i < total; i++) {
+    const line = moves.slice(0, i);
+    const a = await engine.analyse(line, movetime);
+    found.push(a);
+    bestSans.push(a ? (await engine.sanMap(line)).get(a.best) ?? a.best : "");
+    onProgress(i + 1, total);
+  }
+
+  // The final position has no analysis when the game ended in it: a mate
+  // is decided, a stalemate is level.
+  const last = found[total - 1];
+  let endForMover: number | null = null;
+  if (!last) {
+    const st = await engine.snapshot(moves);
+    endForMover = st.status.incheck ? 10000 : 0;
+  }
+
+  const evals = found.map((a, i) => {
+    const sign = i % 2 === 0 ? 1 : -1; // side to move after i plies
+    if (a) return sign * a.cp;
+    return endForMover === null ? 0 : -sign * endForMover;
+  });
+
+  const plies: MoveReview[] = [];
+  for (let i = 0; i < moves.length; i++) {
+    const before = found[i];
+    if (!before) break;
+    const after = found[i + 1];
+    const replySan = after ? bestSans[i + 1] || after.best : null;
+    const end = after ? null : endForMover;
+    plies.push(judge(i, moves[i], sans[i], bestSans[i], replySan, before, after, end));
+  }
+  return { plies, evals };
+}

@@ -5,7 +5,8 @@ import ExplainPanel from "./components/ExplainPanel.vue";
 import OpeningExplorer from "./components/OpeningExplorer.vue";
 import LessonView from "./components/LessonView.vue";
 import CoachCard from "./components/CoachCard.vue";
-import { explainWhy, glyph, judge, type MoveReview } from "./coach";
+import ReviewPanel from "./components/ReviewPanel.vue";
+import { explainWhy, glyph, judge, reviewGame, type GameReview, type MoveReview } from "./coach";
 import { Engine } from "./engine/engine";
 import type { GameState, Color, EngineInfo } from "./engine/types";
 import { fenToBoard, FILES } from "./engine/protocol";
@@ -57,6 +58,55 @@ const lastReview = computed<MoveReview | null>(() => {
   const plies = Object.keys(reviews.value).map(Number).filter((p) => p < moves.value.length);
   return plies.length ? reviews.value[Math.max(...plies)] : null;
 });
+// ---- game review: every move of the game, both sides, judged afterwards
+const gameReview = ref<GameReview | null>(null);
+const reviewProgress = ref<[number, number] | null>(null);
+const reviewSel = ref(-1);
+const reviewState = ref<GameState | null>(null);
+const reviewing = computed(() => gameReview.value !== null || reviewProgress.value !== null);
+
+async function startReview() {
+  if (thinking.value || coaching.value || reviewing.value || moves.value.length < 2) return;
+  reviewProgress.value = [0, moves.value.length + 1];
+  try {
+    gameReview.value = await reviewGame(engine, moves.value, sanMoves.value, 200,
+      (done, total) => (reviewProgress.value = [done, total]));
+  } finally {
+    reviewProgress.value = null;
+  }
+  // Open on the worst move, which is usually what the review is for.
+  const plies = gameReview.value?.plies ?? [];
+  const worst = plies.reduce((w, p) => (p.loss > (plies[w]?.loss ?? -1) ? p.ply : w), 0);
+  await selectReview(worst);
+}
+
+async function selectReview(ply: number) {
+  const r = gameReview.value;
+  if (!r || ply < 0 || ply >= r.plies.length) return;
+  reviewSel.value = ply;
+  reviewState.value = await engine.snapshot(moves.value.slice(0, ply + 1));
+  const p = r.plies[ply];
+  if (p.why === null && (p.verdict === "inaccuracy" || p.verdict === "mistake" || p.verdict === "blunder")) {
+    p.why = await explainWhy(engine, moves.value.slice(0, ply), p);
+    gameReview.value = { ...r };
+  }
+}
+
+function closeReview() {
+  gameReview.value = null;
+  reviewState.value = null;
+  reviewSel.value = -1;
+}
+
+function onReviewKey(e: KeyboardEvent) {
+  if (!gameReview.value || mode.value !== "play") return;
+  if (e.key === "ArrowRight") selectReview(reviewSel.value + 1);
+  else if (e.key === "ArrowLeft") selectReview(reviewSel.value - 1);
+  else if (e.key === "Escape") closeReview();
+}
+window.addEventListener("keydown", onReviewKey);
+onBeforeUnmount(() => window.removeEventListener("keydown", onReviewKey));
+
 function dropReviewsFrom(ply: number) {
   const kept: Record<number, MoveReview> = {};
   for (const [k, v] of Object.entries(reviews.value)) if (Number(k) < ply) kept[Number(k)] = v;
@@ -189,7 +239,8 @@ function push(uci: string) {
 }
 
 const canMove = computed(
-  () => !!state.value && !thinking.value && !coaching.value && !gameOver.value && stm.value === playerColor.value
+  () => !!state.value && !thinking.value && !coaching.value && !reviewing.value
+    && !gameOver.value && stm.value === playerColor.value
 );
 
 async function applyStrength() {
@@ -260,6 +311,7 @@ async function coachMove(line: string[], uci: string, sansBefore: Map<string, st
 }
 
 async function newGame() {
+  closeReview();
   moves.value = [];
   sanMoves.value = [];
   reviews.value = {};
@@ -586,6 +638,9 @@ onMounted(async () => {
           <button class="block" :disabled="thinking" @click="importOpen = true; importError = ''">{{ S.pgnImport }}</button>
         </div>
         <div v-if="pgnNotice" class="notice">{{ pgnNotice }}</div>
+        <button class="block" :disabled="moves.length < 2 || thinking || coaching || reviewing" @click="startReview">
+          {{ S.reviewGame }}
+        </button>
       </aside>
 
       <!-- board + eval bar -->
@@ -600,7 +655,17 @@ onMounted(async () => {
             <span class="clock-time" dir="ltr">{{ clockText(timeLeft(orientation === 'w' ? 'b' : 'w')) }}</span>
           </div>
           <ChessBoard
-            v-if="state"
+            v-if="gameReview && reviewState"
+            :fen="reviewState.fen"
+            :legal="new Set()"
+            :orientation="orientation"
+            :stm="reviewState.status.stm"
+            :last-move="moves[reviewSel] ?? null"
+            :check-square="null"
+            :interactive="false"
+          />
+          <ChessBoard
+            v-else-if="state"
             :fen="state.fen"
             :legal="state.legal"
             :orientation="orientation"
@@ -622,7 +687,18 @@ onMounted(async () => {
               <template v-if="info.scoreCp != null">· {{ (info.scoreCp / 100).toFixed(2) }}</template>
             </span>
           </div>
-          <button v-if="coaching" class="coach-strip">{{ S.coachThinking }}</button>
+          <div v-if="reviewProgress" class="coach-strip">
+            {{ S.reviewRunning }}
+            <span class="progress"><i :style="{ width: (reviewProgress[0] / reviewProgress[1]) * 100 + '%' }" /></span>
+            <span dir="ltr">{{ reviewProgress[0] }}/{{ reviewProgress[1] }}</span>
+          </div>
+          <div v-else-if="gameReview" class="coach-strip review-nav" dir="ltr">
+            <button :disabled="reviewSel <= 0" @click="selectReview(reviewSel - 1)">◀</button>
+            <span :dir="dir">{{ S.reviewMove }} <b dir="ltr">{{ Math.floor(reviewSel / 2) + 1 }}{{ reviewSel % 2 ? "..." : "." }} {{ sanMoves[reviewSel] }}</b></span>
+            <button :disabled="reviewSel >= gameReview.plies.length - 1" @click="selectReview(reviewSel + 1)">▶</button>
+          </div>
+          <button v-else-if="gameOver && moves.length >= 2" class="coach-strip review-offer" @click="startReview">{{ S.reviewOffer }}</button>
+          <button v-else-if="coaching" class="coach-strip">{{ S.coachThinking }}</button>
           <button v-else-if="coachOn && lastReview" class="coach-strip" :class="lastReview.verdict" @click="tab = 'coach'">
             <b dir="ltr">{{ lastReview.san }}{{ glyph(lastReview.verdict) }}</b>
             <span class="cs-verdict">{{ S[`verdict_${lastReview.verdict}`] }}</span>
@@ -648,7 +724,10 @@ onMounted(async () => {
 
       <!-- right panel -->
       <aside class="panel">
-        <div class="explain-box">
+        <div v-if="gameReview" class="explain-box">
+          <ReviewPanel :review="gameReview" :selected="reviewSel" :lang="lang" @select="selectReview" @close="closeReview" />
+        </div>
+        <div v-else class="explain-box">
           <div class="tabs">
             <button :class="{ on: tab === 'eval' }" @click="tab = 'eval'">{{ S.tabEval }}</button>
             <button :class="{ on: tab === 'explorer' }" @click="tab = 'explorer'">
@@ -1107,6 +1186,31 @@ table {
 .coach-strip.blunder .cs-verdict { color: #e0534a; }
 .cs-verdict {
   font-weight: 700;
+}
+.progress {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.review-nav {
+  justify-content: space-between;
+  cursor: default;
+}
+.review-nav button {
+  padding: 2px 12px;
+}
+.review-offer {
+  justify-content: center;
+  border-color: var(--accent);
+  color: var(--fg);
+  font-weight: 600;
 }
 .glyph {
   margin-inline-start: 1px;
