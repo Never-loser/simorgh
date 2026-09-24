@@ -738,6 +738,11 @@ void loop() {
         } else if (cmd == "quit") {
             stop_search();
             break;
+        } else if (!cmd.empty()) {
+            // Say so rather than stay silent: a front end newer than this
+            // engine that waits for an answer to a command it does not know
+            // would otherwise wait forever.
+            std::cout << "unknown command " << cmd << std::endl;
         }
     }
 

@@ -145,11 +145,17 @@ class Engine(private val context: Context) {
         w.flush()
     }
 
+    /**
+     * Reads up to the line starting with `prefix`. An engine older than
+     * this app answers a command it does not know with "unknown command";
+     * that ends the wait too, with an empty answer, instead of hanging.
+     */
     private fun readUntil(prefix: String): String {
         val r = reader ?: return ""
         while (true) {
             val line = r.readLine() ?: return ""
             if (line.startsWith(prefix)) return line
+            if (line.startsWith("unknown command")) return ""
         }
     }
 

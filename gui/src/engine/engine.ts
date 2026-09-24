@@ -94,6 +94,13 @@ export class Engine {
   private onLine(line: string) {
     const c = this.collector;
     if (!c) return;
+    // An engine older than this app answers a command it does not know
+    // with "unknown command": that ends the wait, with nothing in it.
+    if (line.startsWith("unknown command")) {
+      this.collector = null;
+      c.resolve([]);
+      return;
+    }
     c.onLine?.(line);
     c.lines.push(line);
     if (c.done(line)) {
