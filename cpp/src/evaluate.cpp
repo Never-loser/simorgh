@@ -118,6 +118,21 @@ constexpr int BISHOP_PAIR_EG = 50;
 constexpr int DOUBLED_PENALTY = 12;
 constexpr int ISOLATED_PENALTY = 14;
 
+// ---- mobility ------------------------------------------------------------
+// How many squares a piece can actually use. The piece-square tables know
+// that a bishop is usually well placed on c4; they cannot see that this
+// bishop on c4 is hemmed in by its own pawns. Mobility can.
+//
+// Counted per knight, bishop, rook and queen: the squares it attacks that
+// hold no piece of its own and are not covered by an enemy pawn (a square
+// a pawn guards is not somewhere a piece can really go). Scored per square
+// relative to what such a piece typically has, so an ordinary piece adds
+// nothing, an active one gains and a buried one loses. The per-square
+// weights are tuned; the typical counts are not.
+constexpr int DEF_MOB_MG[4] = {4, 5, 2, 1};  // knight, bishop, rook, queen
+constexpr int DEF_MOB_EG[4] = {4, 5, 4, 2};
+constexpr int MOB_TYPICAL[4] = {4, 7, 7, 14};
+
 // Files adjacent to each file, and everything ahead of a square on its own
 // and neighbouring files -- the region that must be empty of enemy pawns
 // for a pawn to be passed.
@@ -221,6 +236,43 @@ void pawn_structure(const Position& pos, int& mg, int& eg) {
 // ------------------------------------------------------------ live weights
 int MATERIAL_W[5];
 int PST_W[7][64];  // pawn, knight, bishop, rook, queen, king_mg, king_eg
+int MOB_W[2][4];   // [mg, eg][knight, bishop, rook, queen], per square
+
+// Mobility per piece type, middlegame and endgame, from White's point of
+// view. Shared by evaluate() and explain(), like the pawn terms, so the two
+// cannot disagree.
+struct MobilityTerms {
+    int mg[4] = {0, 0, 0, 0};
+    int eg[4] = {0, 0, 0, 0};
+};
+
+void mobility(const Position& pos, MobilityTerms& t) {
+    const Bitboard occupied = pos.occupancy();
+    for (Color c : {WHITE, BLACK}) {
+        const int sign = c == WHITE ? 1 : -1;
+        const Bitboard theirPawns = pos.pieces(~c, PAWN);
+        const Bitboard pawnGuarded = c == WHITE
+            ? shift(SOUTH_EAST, theirPawns) | shift(SOUTH_WEST, theirPawns)
+            : shift(NORTH_EAST, theirPawns) | shift(NORTH_WEST, theirPawns);
+        const Bitboard usable = ~pos.pieces(c) & ~pawnGuarded;
+
+        for (int i = 0; i < 4; ++i) {
+            const PieceType pt = PieceType(KNIGHT + i);
+            Bitboard b = pos.pieces(c, pt);
+            while (b) {
+                const Square s = pop_lsb(b);
+                const Bitboard reach =
+                    pt == KNIGHT ? Bitboards::knightAttacks[s]
+                  : pt == BISHOP ? Bitboards::bishop_attacks(s, occupied)
+                  : pt == ROOK   ? Bitboards::rook_attacks(s, occupied)
+                                 : Bitboards::queen_attacks(s, occupied);
+                const int beyond = popcount(reach & usable) - MOB_TYPICAL[i];
+                t.mg[i] += sign * MOB_W[0][i] * beyond;
+                t.eg[i] += sign * MOB_W[1][i] * beyond;
+            }
+        }
+    }
+}
 
 enum { PST_PAWN_I, PST_KNIGHT_I, PST_BISHOP_I, PST_ROOK_I, PST_QUEEN_I,
        PST_KING_MG_I, PST_KING_EG_I, PST_COUNT };
@@ -245,9 +297,12 @@ void ensure_defaults() {
     Eval::reset_weights();
 }
 
-// Flat parameter layout: 5 material values, then 7 * 64 PST entries.
+// Flat parameter layout: 5 material values, then 7 * 64 PST entries, then
+// the 4 middlegame and 4 endgame mobility weights.
 constexpr int MATERIAL_PARAMS = 5;
-constexpr int TOTAL_PARAMS = MATERIAL_PARAMS + PST_COUNT * 64;
+constexpr int PST_PARAMS = PST_COUNT * 64;
+constexpr int MOBILITY_PARAMS = 8;
+constexpr int TOTAL_PARAMS = MATERIAL_PARAMS + PST_PARAMS + MOBILITY_PARAMS;
 
 int mirrored_index(Color c, Square s) {
     const int f = int(s) & 7;
@@ -263,6 +318,8 @@ void reset_weights() {
     std::memcpy(MATERIAL_W, DEF_MATERIAL, sizeof(MATERIAL_W));
     for (int t = 0; t < PST_COUNT; ++t)
         std::memcpy(PST_W[t], DEFAULT_PST[t], sizeof(PST_W[t]));
+    std::memcpy(MOB_W[0], DEF_MOB_MG, sizeof(MOB_W[0]));
+    std::memcpy(MOB_W[1], DEF_MOB_EG, sizeof(MOB_W[1]));
     weightsInitialised = true;
 }
 
@@ -272,12 +329,16 @@ int& param(int index) {
     ensure_defaults();
     if (index < MATERIAL_PARAMS) return MATERIAL_W[index];
     const int rest = index - MATERIAL_PARAMS;
-    return PST_W[rest / 64][rest % 64];
+    if (rest < PST_PARAMS) return PST_W[rest / 64][rest % 64];
+    const int mob = rest - PST_PARAMS;
+    return MOB_W[mob / 4][mob % 4];
 }
 
 const char* param_group(int index) {
     if (index < MATERIAL_PARAMS) return "material";
-    return GROUP_NAMES[(index - MATERIAL_PARAMS) / 64];
+    const int rest = index - MATERIAL_PARAMS;
+    if (rest < PST_PARAMS) return GROUP_NAMES[rest / 64];
+    return rest - PST_PARAMS < 4 ? "mobility_mg" : "mobility_eg";
 }
 
 bool save_weights(const std::string& path) {
@@ -293,6 +354,11 @@ bool save_weights(const std::string& path) {
         for (int s = 0; s < 64; ++s) out << ' ' << PST_W[t][s];
         out << '\n';
     }
+    out << "mobility_mg";
+    for (int i = 0; i < 4; ++i) out << ' ' << MOB_W[0][i];
+    out << "\nmobility_eg";
+    for (int i = 0; i < 4; ++i) out << ' ' << MOB_W[1][i];
+    out << '\n';
     return bool(out);
 }
 
@@ -307,6 +373,11 @@ bool load_weights(const std::string& path) {
     std::memcpy(material, DEF_MATERIAL, sizeof(material));
     for (int t = 0; t < PST_COUNT; ++t)
         std::memcpy(pst[t], DEFAULT_PST[t], sizeof(pst[t]));
+    // A weights file from before mobility existed has no such lines and
+    // simply gets the defaults for them.
+    int mob[2][4];
+    std::memcpy(mob[0], DEF_MOB_MG, sizeof(mob[0]));
+    std::memcpy(mob[1], DEF_MOB_EG, sizeof(mob[1]));
 
     std::string line;
     while (std::getline(in, line)) {
@@ -320,6 +391,12 @@ bool load_weights(const std::string& path) {
                 if (!(iss >> material[i])) return false;
             continue;
         }
+        if (name == "mobility_mg" || name == "mobility_eg") {
+            int* row = mob[name == "mobility_mg" ? 0 : 1];
+            for (int i = 0; i < 4; ++i)
+                if (!(iss >> row[i])) return false;
+            continue;
+        }
         int table = -1;
         for (int t = 0; t < PST_COUNT; ++t)
             if (name == GROUP_NAMES[t]) table = t;
@@ -331,6 +408,7 @@ bool load_weights(const std::string& path) {
     std::memcpy(MATERIAL_W, material, sizeof(MATERIAL_W));
     for (int t = 0; t < PST_COUNT; ++t)
         std::memcpy(PST_W[t], pst[t], sizeof(PST_W[t]));
+    std::memcpy(MOB_W, mob, sizeof(MOB_W));
     weightsInitialised = true;
     init_eval();
     return true;
@@ -397,6 +475,13 @@ int evaluate(const Position& pos) {
             mgScore += sign * BISHOP_PAIR_MG;
             egScore += sign * BISHOP_PAIR_EG;
         }
+    }
+
+    MobilityTerms mob;
+    mobility(pos, mob);
+    for (int i = 0; i < 4; ++i) {
+        mgScore += mob.mg[i];
+        egScore += mob.eg[i];
     }
 
     score += (mgScore * phase + egScore * (PHASE_MAX - phase)) / PHASE_MAX;
@@ -519,6 +604,14 @@ Breakdown explain(const Position& pos) {
           pawns.isolatedOn);
     blend("pawns.doubled", pawns.doubledMg, pawns.doubledEg, pawns.doubledOn);
     blend("bishop.pair", pairMg, pairEg, pairOn);
+
+    static const char* MOBILITY_NAME[4] = {
+        "mobility.knight", "mobility.bishop", "mobility.rook", "mobility.queen"
+    };
+    MobilityTerms mob;
+    mobility(pos, mob);
+    for (int i = 0; i < 4; ++i)
+        blend(MOBILITY_NAME[i], mob.mg[i], mob.eg[i], "");
 
     // evaluate() tapers the *sum*, once. Tapering each term on its own and
     // adding them up truncates several times instead, so the two differ by

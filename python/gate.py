@@ -92,6 +92,11 @@ def main() -> int:
     ap.add_argument("--promote", action="store_true",
                     help="overwrite the baseline if the candidate passes")
     ap.add_argument("--engine", default=None)
+    ap.add_argument("--baseline-engine", default=None,
+                    help="a different binary for the baseline, for changes to "
+                         "the evaluation code rather than its weights; the "
+                         "match then also charges the candidate for any "
+                         "speed it lost")
     args = ap.parse_args()
 
     candidate = Path(args.candidate)
@@ -102,7 +107,7 @@ def main() -> int:
 
     path = args.engine or find_engine()
     a = Engine(path, own_book=False)   # candidate
-    b = Engine(path, own_book=False)   # baseline
+    b = Engine(args.baseline_engine or path, own_book=False)   # baseline
     ref = Engine(path, own_book=False)  # rules oracle only
     configure(a, candidate)
     configure(b, baseline_arg)

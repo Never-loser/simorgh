@@ -35,7 +35,8 @@ struct Result {
 // games carry only a few hundred independent labels and the piece-square
 // tables end up memorising rather than generalising. "material" fits only
 // the four free piece values, which a small dataset can actually support.
-enum class Scope { All, Material, Pst };
+// "mobility" fits only the eight mobility weights.
+enum class Scope { All, Material, Pst, Mobility };
 
 // Piece-square tables are tied to their left-right mirror while tuning, so
 // a4 and h4 always move together. Halves the free parameters and enforces

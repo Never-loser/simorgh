@@ -46,6 +46,10 @@ FA = {
     "pawns.isolated": "پیاده منزوی",
     "pawns.doubled": "پیاده دوتایی",
     "bishop.pair": "جفت فیل",
+    "mobility.knight": "تحرک اسب‌ها",
+    "mobility.bishop": "تحرک فیل‌ها",
+    "mobility.rook": "تحرک رخ‌ها",
+    "mobility.queen": "تحرک وزیر",
     "rounding": "گِردکردن (تقسیم صحیح در تناسب مرحله)",
 }
 
@@ -59,6 +63,10 @@ EN = {
     "king.placement": "king placement", "pawns.passed": "passed pawns",
     "pawns.isolated": "isolated pawns", "pawns.doubled": "doubled pawns",
     "bishop.pair": "bishop pair", "rounding": "tapering rounding",
+    "mobility.knight": "knight mobility",
+    "mobility.bishop": "bishop mobility",
+    "mobility.rook": "rook mobility",
+    "mobility.queen": "queen mobility",
 }
 
 WHITE_FA, BLACK_FA = "سفید", "سیاه"

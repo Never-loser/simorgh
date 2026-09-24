@@ -527,9 +527,22 @@ engine so its own time management applies.
 Bitboard move generation, verified with `perft`. Iterative deepening with
 principal-variation search, a transposition table, killer moves, a history
 heuristic, null-move pruning, late move reductions, check extensions,
-aspiration windows and a quiescence search. Evaluation is material plus
-piece-square tables, and its weights are loadable and tunable rather than
-compiled in.
+aspiration windows and a quiescence search. Evaluation is material,
+piece-square tables, pawn structure (passed, isolated and doubled pawns),
+the bishop pair and piece mobility, and its weights are loadable and
+tunable rather than compiled in.
+
+Mobility counts, for each knight, bishop, rook and queen, the squares it
+can use: not held by its own pieces and not guarded by an enemy pawn. Its
+eight weights were fitted to 190,894 positions from master games
+(`tune data/gm_quiet.txt ... mobility`), and the result was measured in
+800 games against the engine without it, both sides without the opening
+book, 100 ms a move, from random openings played with each colour:
++222 =447 -131, **+40 Elo** (95% interval +24 to +56). That is after
+paying for it in speed: counting mobility costs about 15% of the search
+rate. The match used `python/gate.py --baseline-engine`, which plays a
+different binary as the baseline so a change to the evaluation code is
+charged for its speed as well as credited for its knowledge.
 
 Beyond the standard UCI commands, the engine understands `d` (print the
 board and FEN), `legal` (list legal moves), `status` (check / legal-move

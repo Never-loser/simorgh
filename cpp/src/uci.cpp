@@ -545,11 +545,11 @@ void loop() {
             const Tune::Scope scope = Tune::parse_scope(scopeText, scopeOk);
             if (data.empty()) {
                 std::cout << "info string usage: tune <positions> [out] "
-                             "[passes] [all|material|pst]" << std::endl;
+                             "[passes] [all|material|pst|mobility]" << std::endl;
             } else {
             if (!scopeOk) {
                 std::cout << "info string unknown scope '" << scopeText
-                          << "'; use all, material or pst" << std::endl;
+                          << "'; use all, material, pst or mobility" << std::endl;
             } else {
                 const Tune::Result r = Tune::run(data, out, passes, scope);
                 if (!r.ok) {

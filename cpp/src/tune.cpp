@@ -54,10 +54,18 @@ double fit_k() {
     return best;
 }
 
+// What kind of weight a parameter is, from the evaluation's own grouping.
+bool is_pst(int index) {
+    return std::string(Eval::param_group(index)).rfind("pst_", 0) == 0;
+}
+bool is_mobility(int index) {
+    return std::string(Eval::param_group(index)).rfind("mobility", 0) == 0;
+}
+
 // Index of the same square mirrored about the vertical axis, or -1 for
-// material parameters which have no mirror.
+// parameters that are not squares and so have no mirror.
 int mirror_of(int index) {
-    if (index < 5) return -1;
+    if (!is_pst(index)) return -1;
     const int rest = index - 5;
     const int table = rest / 64;
     const int square = rest % 64;
@@ -69,15 +77,17 @@ int mirror_of(int index) {
 // Parameters that must not move.
 bool frozen(int index, Tune::Scope scope) {
     const bool isMaterial = index < 5;
+    const bool isPst = is_pst(index);
 
     // Tune only the left half of each table; the right half follows.
-    if (Tune::MIRROR_PST && !isMaterial) {
+    if (Tune::MIRROR_PST && isPst) {
         const int square = (index - 5) % 64;
         if (square % 8 >= 4) return true;
     }
 
     if (scope == Tune::Scope::Material && !isMaterial) return true;
-    if (scope == Tune::Scope::Pst && isMaterial) return true;
+    if (scope == Tune::Scope::Pst && !isPst) return true;
+    if (scope == Tune::Scope::Mobility && !is_mobility(index)) return true;
 
     // Pawn value anchors the whole centipawn scale; if it drifts, every
     // other weight drifts with it and the numbers stop meaning anything.
@@ -140,6 +150,7 @@ Scope parse_scope(const std::string& text, bool& ok) {
     if (text.empty() || text == "all") return Scope::All;
     if (text == "material") return Scope::Material;
     if (text == "pst") return Scope::Pst;
+    if (text == "mobility") return Scope::Mobility;
     ok = false;
     return Scope::All;
 }
@@ -148,6 +159,7 @@ const char* scope_name(Scope scope) {
     switch (scope) {
         case Scope::Material: return "material";
         case Scope::Pst:      return "pst";
+        case Scope::Mobility: return "mobility";
         default:              return "all";
     }
 }
