@@ -392,7 +392,7 @@ void loop() {
         iss >> cmd;
 
         if (cmd == "uci") {
-            std::cout << "id name Simorgh 0.2.0\n"
+            std::cout << "id name Simorgh 0.3.0\n"
                          "id author EPN\n"
                          "option name Skill Level type spin default 20 min 0 max 20\n"
                          "option name UCI_LimitStrength type check default false\n"
