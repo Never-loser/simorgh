@@ -58,6 +58,10 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
     /** The player's moves judged so far, by ply. */
     var reviews by mutableStateOf(mapOf<Int, Coach.Review>()); private set
     val lastReview: Coach.Review? get() = reviews.filterKeys { it < moves.size }.maxByOrNull { it.key }?.value
+    // Bumped whenever the moves are replaced or taken back, so a judgement
+    // still running for the old line is dropped rather than filed under
+    // the new one.
+    private var line = 0
 
     // ---------------------------------------------------------- game review
     var gameReview by mutableStateOf<Coach.GameReview?>(null); private set
@@ -128,7 +132,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
             else -> null
         }
 
-    val playersTurn: Boolean get() = ready && !thinking && !coaching && !reviewing && !gameOver && stm == playerColour
+    val playersTurn: Boolean get() = ready && !thinking && !reviewing && !gameOver && stm == playerColour
     val lastMove: Pair<String, String>?
         get() = moves.lastOrNull()?.let { it.substring(0, 2) to it.substring(2, 4) }
 
@@ -185,6 +189,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
         if (thinking) return
         scope.launch {
             closeReview()
+            line++
             playerColour = colour
             learned = false
             info = null
@@ -218,6 +223,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
             resetClock()
             closeReview()
             reviews = emptyMap()
+            this@Game.line++
             engine.newGame()
             moves = line
             sanMoves = sans
@@ -234,13 +240,16 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
         if (move !in legal) return
         scope.launch {
             clockStop(playerColour)
-            val line = moves
+            val before = moves
             val sansBefore = state?.san.orEmpty()
             push(move)
             sync()
             save()
-            if (coachOn) coachMove(line, move, sansBefore)
+            val afterMove = state
+            // The engine answers first; the coach judges the move while
+            // the player thinks about the next one, so it costs no delay.
             engineTurnIfNeeded()
+            if (coachOn && afterMove != null) coachMove(before, move, sansBefore, afterMove)
         }
     }
 
@@ -249,6 +258,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
         if (thinking || moves.isEmpty() || timeControl.timed) return
         val drop = if (stm == playerColour && moves.size >= 2) 2 else 1
         scope.launch {
+            line++
             moves = moves.dropLast(drop)
             sanMoves = sanMoves.dropLast(drop)
             reviews = reviews.filterKeys { it < moves.size }
@@ -304,6 +314,7 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
         playerColour = if (line.size % 2 == 0) "w" else "b"
         closeReview()
         reviews = emptyMap()
+        this.line++
         learned = true     // someone else's game: not the engine's to learn from
         info = null
         timeControl = TIME_CONTROLS[0]
@@ -318,21 +329,25 @@ class Game(private val engine: Engine, private val scope: CoroutineScope, privat
 
     // ---------------------------------------------------------- coach
     /**
-     * Judges the player's move between it and the engine's reply, while
-     * neither clock runs, so it costs nobody time.
+     * Judges the player's move from the position before it and the one
+     * right after it (`afterMove`, not whatever the board shows by now:
+     * the engine has usually replied already).
      */
-    private suspend fun coachMove(line: List<String>, move: String, sansBefore: Map<String, String>) {
+    private suspend fun coachMove(
+        before: List<String>, move: String, sansBefore: Map<String, String>, afterMove: Engine.State,
+    ) {
+        val forLine = line
         coaching = true
         try {
-            val before = engine.analyse(line) ?: return
-            val ended = state?.status?.get("legal") == "0"
-            val after = if (ended) null else engine.analyse(line + move)
-            val end = if (ended) (if (inCheck) 10000 else 0) else null
-            val replySan = after?.let { state?.san?.get(it.best) ?: it.best }
-            var r = Coach.judge(line.size, move, sansBefore[move] ?: move, sansBefore[before.best] ?: before.best,
-                                replySan, before, after, end)
-            if (with(Coach) { r.verdict.bad }) r = r.copy(why = Coach.why(engine, line, r))
-            reviews = reviews + (r.ply to r)
+            val best = engine.analyse(before) ?: return
+            val ended = afterMove.status["legal"] == "0"
+            val after = if (ended) null else engine.analyse(before + move)
+            val end = if (ended) (if (afterMove.status["incheck"] == "1") 10000 else 0) else null
+            val replySan = after?.let { afterMove.san[it.best] ?: it.best }
+            var r = Coach.judge(before.size, move, sansBefore[move] ?: move, sansBefore[best.best] ?: best.best,
+                                replySan, best, after, end)
+            if (with(Coach) { r.verdict.bad }) r = r.copy(why = Coach.why(engine, before, r))
+            if (forLine == line) reviews = reviews + (r.ply to r)
         } finally {
             coaching = false
         }

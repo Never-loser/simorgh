@@ -54,6 +54,10 @@ function setCoach(on: boolean) {
 }
 const coaching = ref(false);
 const reviews = ref<Record<number, MoveReview>>({});
+// Bumped whenever the moves are replaced or taken back, so a judgement
+// still running for the old line is dropped rather than filed under the
+// new one.
+let lineId = 0;
 const lastReview = computed<MoveReview | null>(() => {
   const plies = Object.keys(reviews.value).map(Number).filter((p) => p < moves.value.length);
   return plies.length ? reviews.value[Math.max(...plies)] : null;
@@ -239,7 +243,7 @@ function push(uci: string) {
 }
 
 const canMove = computed(
-  () => !!state.value && !thinking.value && !coaching.value && !reviewing.value
+  () => !!state.value && !thinking.value && !reviewing.value
     && !gameOver.value && stm.value === playerColor.value
 );
 
@@ -278,33 +282,38 @@ async function engineMoveIfNeeded() {
 }
 
 async function onMove(uci: string) {
-  if (thinking.value || coaching.value || gameOver.value) return;
+  if (thinking.value || gameOver.value) return;
   clockStop(playerColor.value);
   const line = [...moves.value];
   const sansBefore = state.value?.san ?? new Map<string, string>();
   push(uci);
   await refresh();
   saveGame();
-  if (coachOn.value) await coachMove(line, uci, sansBefore);
+  const afterMove = state.value;
+  // The engine answers first; the coach judges the move while the player
+  // thinks about the next one, so it adds no delay.
   await engineMoveIfNeeded();
+  if (coachOn.value && afterMove) void coachMove(line, uci, sansBefore, afterMove);
 }
 
-// Runs between the player's move and the engine's reply, while neither
-// clock is running, so judging a move costs nobody time.
-async function coachMove(line: string[], uci: string, sansBefore: Map<string, string>) {
+// Judges from the position before the move and the one right after it
+// (`afterMove`, not the board as it is now: the engine has usually
+// replied already).
+async function coachMove(line: string[], uci: string, sansBefore: Map<string, string>, afterMove: GameState) {
+  const forLine = lineId;
   coaching.value = true;
   try {
     const before = await engine.analyse(line);
     if (!before) return;
-    const ended = !!state.value && state.value.status.legal === 0;
+    const ended = afterMove.status.legal === 0;
     const after = ended ? null : await engine.analyse([...line, uci]);
-    const end = ended ? (state.value!.status.incheck ? 10000 : 0) : null;
-    const replySan = after ? state.value?.san.get(after.best) ?? after.best : null;
+    const end = ended ? (afterMove.status.incheck ? 10000 : 0) : null;
+    const replySan = after ? afterMove.san.get(after.best) ?? after.best : null;
     const r = judge(line.length, uci, sansBefore.get(uci) ?? uci,
       sansBefore.get(before.best) ?? before.best, replySan, before, after, end);
     if (r.verdict === "inaccuracy" || r.verdict === "mistake" || r.verdict === "blunder")
       r.why = await explainWhy(engine, line, r);
-    reviews.value = { ...reviews.value, [r.ply]: r };
+    if (forLine === lineId) reviews.value = { ...reviews.value, [r.ply]: r };
   } finally {
     coaching.value = false;
   }
@@ -312,6 +321,7 @@ async function coachMove(line: string[], uci: string, sansBefore: Map<string, st
 
 async function newGame() {
   closeReview();
+  lineId++;
   moves.value = [];
   sanMoves.value = [];
   reviews.value = {};
@@ -352,6 +362,7 @@ async function undo() {
     moves.value.pop();
     sanMoves.value.pop();
   }
+  lineId++;
   dropReviewsFrom(moves.value.length);
   await refresh();
   saveGame();
@@ -370,6 +381,7 @@ async function continueFrom(g: { moves: string[]; sans: string[]; side: Color })
   mode.value = "play";
   playerColor.value = g.side;
   orientation.value = g.side;
+  lineId++;
   moves.value = [...g.moves];
   sanMoves.value = [...g.sans];
   reviews.value = {};
@@ -480,6 +492,7 @@ async function importPgn() {
   importOpen.value = false;
   importText.value = "";
   // Carry on from the imported position, playing the side to move.
+  lineId++;
   moves.value = line;
   sanMoves.value = sans;
   reviews.value = {};
