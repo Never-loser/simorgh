@@ -160,15 +160,26 @@ export class Engine {
     return { fen, legal, san, status, moves: [...moves], explain, opening, book };
   }
 
-  /** Ask the engine to move. Streams info lines; resolves with bestmove UCI. */
+  /** UCI -> SAN for every legal move after `moves`; for reading PGN. */
+  async sanMap(moves: string[]): Promise<Map<string, string>> {
+    this.setPosition(moves);
+    const lines = await this.run("san", (l) => l.startsWith("san"));
+    return parseSan(lines[lines.length - 1] ?? "");
+  }
+
+  /**
+   * Ask the engine to move. `limits` is a fixed time in ms, or the clock
+   * part of a `go` command ("wtime 60000 btime 58000 winc 2000 binc 2000").
+   * Streams info lines; resolves with bestmove UCI.
+   */
   async go(
     moves: string[],
-    movetime: number,
+    limits: number | string,
     onInfo?: (info: EngineInfo) => void
   ): Promise<string> {
     this.setPosition(moves);
     const lines = await this.run(
-      `go movetime ${movetime}`,
+      typeof limits === "number" ? `go movetime ${limits}` : `go ${limits}`,
       (l) => l.startsWith("bestmove"),
       true,
       (l) => {

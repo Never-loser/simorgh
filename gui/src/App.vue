@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import ChessBoard from "./components/ChessBoard.vue";
 import ExplainPanel from "./components/ExplainPanel.vue";
 import OpeningExplorer from "./components/OpeningExplorer.vue";
@@ -9,6 +9,7 @@ import type { GameState, Color, EngineInfo } from "./engine/types";
 import { fenToBoard, FILES } from "./engine/protocol";
 import { t, type Lang } from "./i18n";
 import { THEMES, applyTheme, savedTheme, type ThemeId } from "./themes";
+import { normalizeSan, readPgnMoves, toPgn } from "./pgn";
 
 const lang = ref<Lang>("fa");
 const S = computed(() => t(lang.value));
@@ -48,8 +49,68 @@ const STRENGTHS = [
   { label: "MAX", elo: 0 },
 ];
 
+// ---- clock
+// Base time and increment in ms; "none" is an untimed game, as before.
+const TIME_CONTROLS = [
+  { id: "none", base: 0, inc: 0, label: "∞" },
+  { id: "3+2", base: 180_000, inc: 2_000, label: "3+2" },
+  { id: "5+0", base: 300_000, inc: 0, label: "5+0" },
+  { id: "10+0", base: 600_000, inc: 0, label: "10+0" },
+  { id: "15+10", base: 900_000, inc: 10_000, label: "15+10" },
+];
+const tcId = ref("none");
+const tc = computed(() => TIME_CONTROLS.find((x) => x.id === tcId.value) ?? TIME_CONTROLS[0]);
+const timed = computed(() => tc.value.base > 0);
+const remain = reactive<Record<Color, number>>({ w: 0, b: 0 }); // ms, at the start of the turn
+const running = ref<Color | null>(null);
+let turnStart = 0;
+const now = ref(performance.now());
+const flagged = ref<Color | null>(null); // who ran out of time
+
+function timeLeft(c: Color): number {
+  return running.value === c ? Math.max(0, remain[c] - (now.value - turnStart)) : remain[c];
+}
+function clockStart(c: Color) {
+  if (!timed.value || flagged.value) return;
+  running.value = c;
+  turnStart = performance.now();
+  now.value = turnStart;
+}
+function clockStop(c: Color) {
+  if (!timed.value || running.value !== c) return;
+  remain[c] = Math.max(0, remain[c] - (performance.now() - turnStart)) + tc.value.inc;
+  running.value = null;
+}
+function resetClock() {
+  running.value = null;
+  flagged.value = null;
+  remain.w = remain.b = tc.value.base;
+}
+const ticker = window.setInterval(() => {
+  if (!running.value) return;
+  now.value = performance.now();
+  const c = running.value;
+  if (timeLeft(c) <= 0) {
+    remain[c] = 0;
+    running.value = null;
+    flagged.value = c;
+    if (thinking.value) engine.stop();
+    saveGame();
+  }
+}, 100);
+onBeforeUnmount(() => clearInterval(ticker));
+
+function clockText(ms: number): string {
+  const s = Math.max(0, ms) / 1000;
+  if (s < 10) return s.toFixed(1);
+  const m = Math.floor(s / 60);
+  return `${m}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+}
+
 const stm = computed<Color>(() => state.value?.status.stm ?? "w");
-const gameOver = computed(() => !!state.value && state.value.status.legal === 0);
+const gameOver = computed(
+  () => !!state.value && (state.value.status.legal === 0 || flagged.value !== null)
+);
 const lastMove = computed(() => moves.value[moves.value.length - 1] ?? null);
 
 const checkSquare = computed<string | null>(() => {
@@ -66,6 +127,9 @@ const statusText = computed(() => {
   if (booting.value) return S.value.connecting;
   if (engineError.value) return S.value.noEngine;
   if (!state.value) return "";
+  if (flagged.value) {
+    return flagged.value === playerColor.value ? S.value.youFlagged : S.value.engineFlagged;
+  }
   if (gameOver.value) {
     if (state.value.status.incheck)
       return stm.value === "w" ? `${S.value.checkmate} — ${S.value.blackWins}` : `${S.value.checkmate} — ${S.value.whiteWins}`;
@@ -111,33 +175,52 @@ async function engineMoveIfNeeded() {
   if (stm.value === playerColor.value) return;
   thinking.value = true;
   info.raw = "";
+  const side = stm.value;
+  clockStart(side);
   try {
-    const movetime = strength.value === 0 ? 1000 : 700;
-    const best = await engine.go(moves.value, movetime, (i) => Object.assign(info, i));
-    if (best && best !== "0000") {
+    const limits = timed.value
+      ? `wtime ${Math.round(timeLeft("w"))} btime ${Math.round(timeLeft("b"))} winc ${tc.value.inc} binc ${tc.value.inc}`
+      : strength.value === 0 ? 1000 : 700;
+    const best = await engine.go(moves.value, limits, (i) => Object.assign(info, i));
+    // Out of time while thinking: the move comes too late to count.
+    if (best && best !== "0000" && !flagged.value) {
+      clockStop(side);
       push(best);
       await refresh();
+      if (!gameOver.value) clockStart(stm.value);
     }
   } finally {
     thinking.value = false;
+    saveGame();
   }
 }
 
 async function onMove(uci: string) {
   if (thinking.value || gameOver.value) return;
+  clockStop(playerColor.value);
   push(uci);
   await refresh();
+  saveGame();
   await engineMoveIfNeeded();
 }
 
 async function newGame() {
   moves.value = [];
   sanMoves.value = [];
+  resetClock();
   await engine.newGame();
   await applyStrength();
   orientation.value = playerColor.value;
   await refresh();
+  saveGame();
+  if (stm.value === playerColor.value) clockStart(playerColor.value);
   await engineMoveIfNeeded();
+}
+
+async function setTimeControl(id: string) {
+  if (thinking.value) return;
+  tcId.value = id;
+  await newGame();
 }
 
 async function setPlayer(c: Color) {
@@ -147,11 +230,13 @@ async function setPlayer(c: Color) {
 
 async function setStrength(elo: number) {
   strength.value = elo;
+  saveGame();
   await applyStrength();
 }
 
 async function undo() {
-  if (thinking.value || moves.value.length === 0) return;
+  // Taking a move back against the clock is not a timed game any more.
+  if (thinking.value || moves.value.length === 0 || timed.value) return;
   // step back to the player's turn
   moves.value.pop();
   sanMoves.value.pop();
@@ -160,6 +245,7 @@ async function undo() {
     sanMoves.value.pop();
   }
   await refresh();
+  saveGame();
 }
 function stmAfter(ms: string[]): Color {
   return ms.length % 2 === 0 ? "w" : "b";
@@ -177,10 +263,121 @@ async function continueFrom(g: { moves: string[]; sans: string[]; side: Color })
   orientation.value = g.side;
   moves.value = [...g.moves];
   sanMoves.value = [...g.sans];
+  tcId.value = "none";
+  resetClock();
   await engine.newGame();
   await applyStrength();
   await refresh();
+  saveGame();
   await engineMoveIfNeeded();
+}
+
+// ---- the game survives closing the app
+const GAME_KEY = "simorgh.game";
+interface SavedGame {
+  moves: string[];
+  sans: string[];
+  player: Color;
+  strength: number;
+  tc: string;
+  remain: Record<Color, number>;
+  flagged: Color | null;
+}
+function saveGame() {
+  // A running clock is saved as it stands now; it resumes on load.
+  const r = { w: timeLeft("w"), b: timeLeft("b") };
+  const g: SavedGame = {
+    moves: moves.value, sans: sanMoves.value, player: playerColor.value,
+    strength: strength.value, tc: tcId.value, remain: r, flagged: flagged.value,
+  };
+  try {
+    localStorage.setItem(GAME_KEY, JSON.stringify(g));
+  } catch {
+    /* not saving is survivable: the game just will not be there next time */
+  }
+}
+function loadGame(): SavedGame | null {
+  try {
+    const g = JSON.parse(localStorage.getItem(GAME_KEY) ?? "null") as SavedGame | null;
+    if (g && Array.isArray(g.moves) && Array.isArray(g.sans) && g.moves.length === g.sans.length) return g;
+  } catch {
+    /* unreadable: start fresh */
+  }
+  return null;
+}
+window.addEventListener("beforeunload", saveGame);
+
+// ---- PGN
+const pgnNotice = ref("");
+const importOpen = ref(false);
+const importText = ref("");
+const importError = ref("");
+
+function resultTag(): string {
+  if (flagged.value) return flagged.value === "w" ? "0-1" : "1-0";
+  if (!state.value || state.value.status.legal !== 0) return "*";
+  if (!state.value.status.incheck) return "1/2-1/2";
+  return stm.value === "w" ? "0-1" : "1-0";
+}
+
+async function copyPgn() {
+  // Tag values in plain ASCII: not every program reads anything else.
+  const you = "Player";
+  const text = toPgn({
+    sans: sanMoves.value,
+    white: playerColor.value === "w" ? you : "Simorgh",
+    black: playerColor.value === "b" ? you : "Simorgh",
+    result: resultTag(),
+    eco: state.value?.opening?.eco,
+    opening: state.value?.opening?.name,
+    timeControl: timed.value ? `${tc.value.base / 1000}+${tc.value.inc / 1000}` : undefined,
+  });
+  try {
+    await navigator.clipboard.writeText(text);
+    pgnNotice.value = S.value.pgnCopied;
+  } catch {
+    pgnNotice.value = S.value.pgnCopyFailed;
+  }
+  setTimeout(() => (pgnNotice.value = ""), 2500);
+}
+
+async function importPgn() {
+  importError.value = "";
+  const read = readPgnMoves(importText.value);
+  if ("error" in read) {
+    importError.value = read.error === "setup" ? S.value.pgnSetup : S.value.pgnEmpty;
+    return;
+  }
+  // Each written move is looked up among the engine's legal moves for the
+  // position it is played in.
+  const line: string[] = [];
+  const sans: string[] = [];
+  for (let i = 0; i < read.sans.length; i++) {
+    const legal = await engine.sanMap(line);
+    const want = normalizeSan(read.sans[i]);
+    const hit = [...legal].find(([, san]) => normalizeSan(san) === want);
+    if (!hit) {
+      importError.value = S.value.pgnBadMove
+        .replace("{n}", `${Math.floor(i / 2) + 1}${i % 2 ? "..." : "."}`)
+        .replace("{move}", read.sans[i]);
+      return;
+    }
+    line.push(hit[0]);
+    sans.push(hit[1]);
+  }
+  importOpen.value = false;
+  importText.value = "";
+  // Carry on from the imported position, playing the side to move.
+  moves.value = line;
+  sanMoves.value = sans;
+  tcId.value = "none";
+  resetClock();
+  playerColor.value = line.length % 2 === 0 ? "w" : "b";
+  orientation.value = playerColor.value;
+  await engine.newGame();
+  await applyStrength();
+  await refresh();
+  saveGame();
 }
 
 function toggleLang() {
@@ -198,9 +395,27 @@ const movePairs = computed(() => {
 onMounted(async () => {
   try {
     await engine.start();
+    const saved = loadGame();
+    if (saved) {
+      moves.value = saved.moves;
+      sanMoves.value = saved.sans;
+      playerColor.value = saved.player;
+      orientation.value = saved.player;
+      strength.value = saved.strength;
+      tcId.value = TIME_CONTROLS.some((x) => x.id === saved.tc) ? saved.tc : "none";
+      remain.w = saved.remain?.w ?? tc.value.base;
+      remain.b = saved.remain?.b ?? tc.value.base;
+      flagged.value = saved.flagged ?? null;
+    } else {
+      resetClock();
+    }
     await applyStrength();
     await refresh();
     booting.value = false;
+    if (!gameOver.value) {
+      if (stm.value === playerColor.value) clockStart(playerColor.value);
+      else await engineMoveIfNeeded();
+    }
   } catch {
     booting.value = false;
     engineError.value = true;
@@ -255,6 +470,19 @@ onMounted(async () => {
         </div>
 
         <div class="group">
+          <div class="group-label">{{ S.timeControl }}</div>
+          <div class="seg wrap">
+            <button
+              v-for="x in TIME_CONTROLS"
+              :key="x.id"
+              :class="{ on: tcId === x.id }"
+              :title="x.id === 'none' ? S.noClock : x.label"
+              @click="setTimeControl(x.id)"
+            >{{ x.label }}</button>
+          </div>
+        </div>
+
+        <div class="group">
           <div class="group-label">{{ S.theme }}</div>
           <div class="themes">
             <button
@@ -277,9 +505,14 @@ onMounted(async () => {
         </div>
 
         <div class="group row-btns">
-          <button class="block" @click="undo">{{ S.undo }}</button>
+          <button class="block" :disabled="timed" @click="undo">{{ S.undo }}</button>
           <button class="block" @click="flip">{{ S.flip }}</button>
         </div>
+        <div class="group row-btns">
+          <button class="block" :disabled="moves.length === 0" @click="copyPgn">{{ S.pgnCopy }}</button>
+          <button class="block" :disabled="thinking" @click="importOpen = true; importError = ''">{{ S.pgnImport }}</button>
+        </div>
+        <div v-if="pgnNotice" class="notice">{{ pgnNotice }}</div>
       </aside>
 
       <!-- board + eval bar -->
@@ -288,7 +521,11 @@ onMounted(async () => {
           <div class="eval-white" :style="{ height: evalBarPct + '%' }" />
           <div class="eval-mid" />
         </div>
-        <div class="board-col">
+        <div class="board-col" :class="{ timed }">
+          <div v-if="timed" class="clock" :class="{ on: running === (orientation === 'w' ? 'b' : 'w'), low: timeLeft(orientation === 'w' ? 'b' : 'w') < 20000 }">
+            <span class="clock-side" :class="orientation === 'w' ? 'b' : 'w'" />
+            <span class="clock-time" dir="ltr">{{ clockText(timeLeft(orientation === 'w' ? 'b' : 'w')) }}</span>
+          </div>
           <ChessBoard
             v-if="state"
             :fen="state.fen"
@@ -300,6 +537,10 @@ onMounted(async () => {
             :interactive="canMove"
             @move="onMove"
           />
+          <div v-if="timed" class="clock" :class="{ on: running === orientation, low: timeLeft(orientation) < 20000 }">
+            <span class="clock-side" :class="orientation" />
+            <span class="clock-time" dir="ltr">{{ clockText(timeLeft(orientation)) }}</span>
+          </div>
           <div class="statusbar" :class="{ warn: engineError }">
             <span class="dot-live" :class="{ think: thinking }" />
             {{ statusText }}
@@ -361,6 +602,19 @@ onMounted(async () => {
         </div>
       </aside>
     </main>
+
+    <div v-if="importOpen" class="modal-back" @click.self="importOpen = false">
+      <div class="modal">
+        <h3>{{ S.pgnImport }}</h3>
+        <p class="modal-hint">{{ S.pgnImportHint }}</p>
+        <textarea v-model="importText" dir="ltr" rows="10" placeholder="1. e4 e5 2. Nf3 Nc6 3. Bb5 a6"></textarea>
+        <div v-if="importError" class="modal-error">{{ importError }}</div>
+        <div class="modal-actions">
+          <button class="primary" @click="importPgn">{{ S.pgnLoad }}</button>
+          <button @click="importOpen = false">{{ S.cancel }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -501,6 +755,10 @@ onMounted(async () => {
   flex: 1;
   max-width: min(72vh, 100%);
   margin: 0 auto;
+}
+/* Room for a clock above and below the board. */
+.board-col.timed {
+  max-width: min(62vh, 100%);
 }
 .eval-bar {
   position: relative;
@@ -700,6 +958,92 @@ table {
   font-weight: 700;
 }
 
+.clock {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 108px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  font-variant-numeric: tabular-nums;
+}
+.clock.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.clock.low .clock-time {
+  color: var(--danger);
+}
+.clock-time {
+  flex: 1;
+  text-align: end;
+  font-family: "SF Mono", "Cascadia Code", monospace;
+  font-size: 20px;
+  font-weight: 700;
+}
+.clock-side {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+.clock-side.w { background: #eef1f4; }
+.clock-side.b { background: #262c34; }
+.notice {
+  font-size: 12px;
+  color: var(--ok);
+  text-align: center;
+}
+.modal-back {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+.modal {
+  width: min(560px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.modal h3 {
+  margin: 0;
+}
+.modal-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.modal textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "SF Mono", "Cascadia Code", monospace;
+  font-size: 12.5px;
+}
+.modal-error {
+  font-size: 12.5px;
+  color: var(--danger);
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
 .themes {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -710,7 +1054,7 @@ table {
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  padding: 6px 2px;
+  padding: 6px 0;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -735,7 +1079,7 @@ table {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 10.5px;
+  font-size: 9.5px;
   color: var(--fg-dim);
   white-space: nowrap;
 }

@@ -36,8 +36,20 @@ Run `python python/gui.py --persian` for the same panel in Persian.
 For a polished, installable version there is now a **Tauri 2 + Vue 3** desktop
 app in [`gui/`](gui/): the same engine, the same self-explaining evaluation, but
 with drag-and-drop, a live evaluation bar, adjustable opponent strength, and a
-bilingual (Persian / English, RTL) dark interface. The engine is bundled inside,
-so there is nothing to configure.
+bilingual (Persian / English, RTL) interface in five themes. The engine is
+bundled inside, so there is nothing to configure.
+
+Both apps (desktop and Android) also have:
+
+- the name of the opening being played, and an **opening explorer** of the
+  moves the engine's book knows in the position, with how their games ended;
+- twelve **opening lessons**, each main line explained move by move beside
+  what every move changed in the evaluation, with a **practice** mode that
+  has you find the moves yourself;
+- a **clock** (3+2, 5+0, 10+0, 15+10, or none) that the engine plays to;
+- **PGN** out (copy, or share on a phone) and in (paste a game and carry on
+  from its last position);
+- the game kept when the app is closed, clock included.
 
 **[Download the Windows installer](https://github.com/Never-loser/simorgh/releases/latest)**
 · or build it yourself:
@@ -58,11 +70,12 @@ streams its output to the Vue front end. See [`gui/README.md`](gui/README.md).
 The same engine on a phone, in [`android/`](android/): Persian first, English
 one tap away, play as either colour, and the same panel that names every
 term behind the evaluation and checks they add up. The engine is not ported
-or wrapped — it is the identical C++ built for arm64 and run as a child
-process, and `bench 9` on a phone visits exactly the nodes the desktop does.
+or wrapped — it is the identical C++ built for the phone's ABI (64- and 32-bit
+ARM, and x86_64) and run as a child process, and `bench 9` on a phone visits
+exactly the nodes the desktop does.
 
 **[Download the APK](https://github.com/Never-loser/simorgh/releases/latest)**
-· any 64-bit phone from Android 7 up. See [`android/README.md`](android/README.md)
+· any phone from Android 7 up. See [`android/README.md`](android/README.md)
 for how the binary gets in, what the phone measured, and why the thinking-time
 control is a set of uneven steps rather than a slider.
 

@@ -1,7 +1,9 @@
 package ir.simorgh.chess
 
 import android.app.Activity
+import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,6 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -29,6 +34,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,6 +60,9 @@ private class Prefs(context: Context) {
     var theme: String
         get() = p.getString("theme", "night") ?: "night"
         set(v) = p.edit().putString("theme", v).apply()
+    var game: String?
+        get() = p.getString("game", null)
+        set(v) = p.edit().putString("game", v).apply()
 }
 
 private val STRENGTHS = listOf(800, 1200, 1600, 2000, 2400, 0)
@@ -68,7 +77,27 @@ fun SimorghApp() {
     val prefs = remember { Prefs(context) }
     val scope = rememberCoroutineScope()
     val engine = remember { Engine(context) }
-    val game = remember { Game(engine, scope) }
+    val game = remember {
+        Game(engine, scope, object : GameStore {
+            override fun save(json: String) { prefs.game = json }
+            override fun load(): String? = prefs.game
+        })
+    }
+
+    // Leaving the app pauses the clock and saves the game; coming back
+    // restarts the clock for whoever is to move.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> game.pause()
+                Lifecycle.Event.ON_START -> game.resume()
+                else -> {}
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
 
     var lang by remember { mutableStateOf(prefs.lang) }
     remember { Ink.use(prefs.theme); 0 }
@@ -155,6 +184,11 @@ fun SimorghApp() {
                     }
                 }
 
+                // ---- clocks: the side at the top of the board above it
+                val bottomSide = if (flipped) "b" else "w"
+                val topSide = if (bottomSide == "w") "b" else "w"
+                if (game.timeControl.timed) ClockRow(game, topSide)
+
                 // ---- board, always LTR inside whichever layout
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Board(
@@ -168,6 +202,7 @@ fun SimorghApp() {
                         onMove = game::play,
                     )
                 }
+                if (game.timeControl.timed) ClockRow(game, bottomSide)
                 OpeningLine(game.state?.opening, atStart = game.moves.isEmpty(), S = S)
 
                 // ---- everything below the board scrolls
@@ -189,7 +224,8 @@ fun SimorghApp() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     ActionButton(S.newGame, Modifier.weight(1.3f), primary = true) { askColour = true }
-                    ActionButton(S.undo, Modifier.weight(1f), enabled = !game.thinking && game.moves.isNotEmpty()) { game.undo() }
+                    ActionButton(S.undo, Modifier.weight(1f),
+                                 enabled = !game.thinking && game.moves.isNotEmpty() && !game.timeControl.timed) { game.undo() }
                     ActionButton(S.flip, Modifier.weight(1f)) { flipped = !flipped }
                 }
             }
@@ -240,6 +276,38 @@ fun SimorghApp() {
                     }
 
                     Spacer(Modifier.height(10.dp))
+                    Text(S.timeControl, color = Ink.Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        TIME_CONTROLS.forEach { tc ->
+                            Chip(label = tc.label, sub = null, selected = game.timeControl.id == tc.id,
+                                 modifier = Modifier.weight(1f)) { game.playAtTimeControl(tc); showSettings = false }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                    Text("PGN", color = Ink.Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Chip(label = S.pgnShare, sub = null, selected = false, modifier = Modifier.weight(1f)) {
+                            if (game.moves.isNotEmpty()) {
+                                val send = Intent(Intent.ACTION_SEND).setType("text/plain")
+                                    .putExtra(Intent.EXTRA_SUBJECT, "Simorgh game")
+                                    .putExtra(Intent.EXTRA_TEXT, game.pgn())
+                                context.startActivity(Intent.createChooser(send, S.pgnShare))
+                            }
+                        }
+                        Chip(label = S.pgnPaste, sub = null, selected = false, modifier = Modifier.weight(1f)) {
+                            val clip = (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                                .primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString()
+                            if (clip.isNullOrBlank()) game.notice = S.clipboardEmpty
+                            else scope.launch {
+                                val err = game.importPgn(clip)
+                                game.notice = pgnMessage(err, S)
+                                if (err == null) { flipped = game.playerColour == "b"; showSettings = false }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
                     Text(S.strength, color = Ink.Muted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         STRENGTHS.forEach { elo ->
@@ -270,6 +338,7 @@ fun SimorghApp() {
 private fun statusText(g: Game, S: Strings): String = when {
     g.error != null -> S.noEngine
     !g.ready -> S.connecting
+    g.flagged != null -> if (g.flagged == g.playerColour) S.youFlagged else S.engineFlagged
     g.result == "1-0" -> "${S.checkmate} — ${S.whiteWins}"
     g.result == "0-1" -> "${S.checkmate} — ${S.blackWins}"
     g.fiftyMoves -> S.drawFifty
@@ -329,6 +398,46 @@ private fun MovesPanel(moves: List<String>, S: Strings) {
                         Text(pair.getOrNull(1) ?: "", color = Ink.Fg, fontSize = 13.sp)
                     }
                 }
+            }
+        }
+    }
+}
+
+private fun pgnMessage(err: String?, S: Strings): String = when {
+    err == null -> S.pgnLoaded
+    err == "setup" -> S.pgnSetup
+    err == "empty" -> S.pgnEmpty
+    err.startsWith("bad:") -> err.split(":", limit = 3).let { S.pgnBadMove.replace("{n}", it[1]).replace("{move}", it[2]) }
+    else -> err
+}
+
+private fun clockText(ms: Long): String {
+    val s = maxOf(0L, ms) / 1000.0
+    if (s < 10) return String.format("%.1f", s)
+    val whole = s.toLong()
+    return "${whole / 60}:${(whole % 60).toString().padStart(2, '0')}"
+}
+
+/** One side's clock: its colour, and the time, lit while it runs. */
+@Composable
+private fun ClockRow(game: Game, side: String) {
+    val on = game.running == side
+    val left = game.timeLeft(side)
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.End) {
+        Ltr {
+            Row(
+                Modifier.clip(RoundedCornerShape(8.dp)).background(if (on) Ink.AccentDim else Ink.Surface)
+                    .border(1.dp, if (on) Ink.Accent else Ink.Border, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(Modifier.size(11.dp).clip(CircleShape)
+                    .background(if (side == "w") Color(0xFFEEF1F4) else Color(0xFF262C34))
+                    .border(1.dp, Ink.Border, CircleShape))
+                Text(clockText(left), color = if (left < 20_000) Ink.Danger else Ink.Fg,
+                     fontSize = 19.sp, fontWeight = FontWeight.Bold,
+                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
             }
         }
     }

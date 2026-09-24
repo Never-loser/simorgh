@@ -280,14 +280,18 @@ class Engine(private val context: Context) {
 
     // ------------------------------------------------------------- search
 
-    /** Runs a search, reporting each depth as it completes. */
+    /**
+     * Runs a search, reporting each depth as it completes. `limits` is the
+     * rest of the go command: "movetime 2000", or the clock as
+     * "wtime .. btime .. winc .. binc ..".
+     */
     suspend fun go(
         moves: List<String>,
-        movetimeMs: Int,
+        limits: String,
         onInfo: (SearchInfo) -> Unit,
     ): String = exclusive {
         position(moves)
-        send("go movetime $movetimeMs")
+        send("go $limits")
         while (true) {
             val line = reader?.readLine() ?: return@exclusive "0000"
             val f = line.split(" ").filter { it.isNotBlank() }
@@ -322,6 +326,20 @@ class Engine(private val context: Context) {
     private fun List<String>.after(key: String): String? {
         val i = indexOf(key)
         return if (i >= 0) getOrNull(i + 1) else null
+    }
+
+    /**
+     * Ends a search early; its bestmove still arrives, through go(). Not
+     * behind the lock on purpose: go() holds it while the search runs.
+     */
+    fun stopSearch() = send("stop")
+
+    /** UCI -> SAN for every legal move after `moves`; for reading PGN. */
+    suspend fun sanMap(moves: List<String>): Map<String, String> = exclusive {
+        position(moves)
+        send("san")
+        readUntil("san").split(" ").filter { it.isNotBlank() }.drop(1)
+            .chunked(2).filter { it.size == 2 }.associate { it[0] to it[1] }
     }
 
     // ------------------------------------------------------------ options

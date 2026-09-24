@@ -82,6 +82,19 @@ class Strings(val lang: Lang) {
     val perfect get() = t("بدون حتی یک اشتباه. آفرین!", "Not a single mistake. Well done!")
     val withMistakes get() = t("با {n} اشتباه. یک بار دیگر امتحان کنید تا بی‌نقص شود.", "With {n} mistakes. Try once more for a clean run.")
     val again get() = t("یک بار دیگر", "Once more")
+    val timeControl get() = t("زمان", "Time control")
+    val youFlagged get() = t("زمان شما تمام شد — موتور برد", "Your time ran out — the engine wins")
+    val engineFlagged get() = t("زمان موتور تمام شد — شما بردید", "The engine's time ran out — you win")
+    val pgnShare get() = t("اشتراک PGN", "Share PGN")
+    val pgnPaste get() = t("وارد کردن از کلیپ‌بورد", "Paste from clipboard")
+    val pgnLoaded get() = t("بازی وارد شد؛ از همین‌جا ادامه بدهید", "Game loaded; carry on from here")
+    val clipboardEmpty get() = t("کلیپ‌بورد خالی است؛ اول PGN یک بازی را کپی کنید.", "The clipboard is empty; copy a game's PGN first.")
+    val pgnSetup get() = t(
+        "این بازی از یک وضعیت دلخواه شروع شده؛ فقط بازی‌هایی که از وضعیت شروع آغاز می‌شوند پشتیبانی می‌شوند.",
+        "This game starts from a set-up position; only games from the initial position are supported.",
+    )
+    val pgnEmpty get() = t("حرکتی در متن کلیپ‌بورد پیدا نشد.", "No moves found in the clipboard text.")
+    val pgnBadMove get() = t("حرکت {n} {move} در آن وضعیت قانونی نیست.", "Move {n} {move} is not legal in that position.")
     val evalHint get() = t(
         "جمع همه‌ی جمله‌ها دقیقاً همان عددی است که موتور روی آن حساب می‌کند.",
         "Every term sums to exactly the number the engine searched on.",
