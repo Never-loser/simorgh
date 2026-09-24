@@ -529,8 +529,8 @@ principal-variation search, a transposition table, killer moves, a history
 heuristic, null-move pruning, late move reductions, check extensions,
 aspiration windows and a quiescence search. Evaluation is material,
 piece-square tables, pawn structure (passed, isolated and doubled pawns),
-the bishop pair and piece mobility, and its weights are loadable and
-tunable rather than compiled in.
+the bishop pair, piece mobility and king safety, and its weights are
+loadable and tunable rather than compiled in.
 
 Mobility counts, for each knight, bishop, rook and queen, the squares it
 can use: not held by its own pieces and not guarded by an enemy pawn. Its
@@ -543,6 +543,19 @@ paying for it in speed: counting mobility costs about 15% of the search
 rate. The match used `python/gate.py --baseline-engine`, which plays a
 different binary as the baseline so a change to the evaluation code is
 charged for its speed as well as credited for its knowledge.
+
+King safety has two parts, both middlegame only. The pawn shield scores
+the king's own pawns on its file and the two beside it, and penalises a
+file there with no pawns at all -- an open file aimed at the king. The
+attack counts the enemy knights, bishops, rooks and queens reaching the
+squares around the king (and one rank beyond, where an attack on a
+castled king lands); from two attackers on, the penalty grows with the
+square of their combined weight, since one attacker is rarely dangerous
+and several are. The attack is collected in the same pass as mobility, so
+it costs little: about 6% of the search rate. Its nine weights were tuned
+the same way (`tune ... king`, error 0.129111 -> 0.127666), and measured
+the same way against the engine with mobility but without king safety:
++247 =422 -131, **+51 Elo** (95% interval +34 to +67).
 
 Beyond the standard UCI commands, the engine understands `d` (print the
 board and FEN), `legal` (list legal moves), `status` (check / legal-move

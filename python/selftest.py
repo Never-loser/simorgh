@@ -464,9 +464,13 @@ def test_pawn_structure() -> None:
     # so losing a rook could cost far more than a rook. The rook's value is
     # read from the engine rather than hard-coded: tuning changes it, and a
     # test that pins it would fail for the wrong reason.
+    #
+    # The black king stands away from the rook's file: a rook bearing on the
+    # king is rightly worth more than a rook (king safety counts it as an
+    # attacker), and that is not the discontinuity this test is here for.
     rook_value = engine_rook_value()
-    with_rook = ev("4k3/8/8/8/8/8/8/3QR1K1 w - - 0 1")
-    without = ev("4k3/8/8/8/8/8/8/3Q2K1 w - - 0 1")
+    with_rook = ev("k7/8/8/8/8/8/8/4QRK1 w - - 0 1")
+    without = ev("k7/8/8/8/8/8/8/4Q1K1 w - - 0 1")
     drop = with_rook - without
     slack = 40
     check("losing a rook costs about a rook, not more",

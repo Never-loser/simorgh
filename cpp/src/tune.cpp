@@ -61,6 +61,9 @@ bool is_pst(int index) {
 bool is_mobility(int index) {
     return std::string(Eval::param_group(index)).rfind("mobility", 0) == 0;
 }
+bool is_king_safety(int index) {
+    return std::string(Eval::param_group(index)).rfind("king_", 0) == 0;
+}
 
 // Index of the same square mirrored about the vertical axis, or -1 for
 // parameters that are not squares and so have no mirror.
@@ -88,6 +91,7 @@ bool frozen(int index, Tune::Scope scope) {
     if (scope == Tune::Scope::Material && !isMaterial) return true;
     if (scope == Tune::Scope::Pst && !isPst) return true;
     if (scope == Tune::Scope::Mobility && !is_mobility(index)) return true;
+    if (scope == Tune::Scope::King && !is_king_safety(index)) return true;
 
     // Pawn value anchors the whole centipawn scale; if it drifts, every
     // other weight drifts with it and the numbers stop meaning anything.
@@ -151,6 +155,7 @@ Scope parse_scope(const std::string& text, bool& ok) {
     if (text == "material") return Scope::Material;
     if (text == "pst") return Scope::Pst;
     if (text == "mobility") return Scope::Mobility;
+    if (text == "king") return Scope::King;
     ok = false;
     return Scope::All;
 }
@@ -160,6 +165,7 @@ const char* scope_name(Scope scope) {
         case Scope::Material: return "material";
         case Scope::Pst:      return "pst";
         case Scope::Mobility: return "mobility";
+        case Scope::King:     return "king";
         default:              return "all";
     }
 }

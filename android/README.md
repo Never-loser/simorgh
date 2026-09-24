@@ -32,7 +32,7 @@ All three are rebuilt together. The APK is limited to exactly these ABIs
 must not be able to install the app, rather than install it and report
 the engine unavailable.
 
-`bench 9` on the desktop and on the phone visit exactly the same 1,008,544
+`bench 9` on the desktop and on the phone visit exactly the same 1,050,257
 nodes; a one-centipawn difference in evaluation would have changed that
 number, so the two builds are known to search identically.
 

@@ -2,6 +2,7 @@
 #include "notation.h"
 #include "stats.h"
 
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -133,6 +134,25 @@ constexpr int DEF_MOB_MG[4] = {4, 5, 2, 1};  // knight, bishop, rook, queen
 constexpr int DEF_MOB_EG[4] = {4, 5, 4, 2};
 constexpr int MOB_TYPICAL[4] = {4, 7, 7, 14};
 
+// ---- king safety ---------------------------------------------------------
+// Two things, both middlegame only: in an endgame the king is a fighting
+// piece and hiding it is a mistake.
+//
+// The pawn shield: the king's own pawns on its file and the two beside it.
+// A pawn one square ahead of the king is worth most, two squares ahead
+// less. A file there with no pawn of the king's own side is a hole, and
+// worse still when the enemy has no pawn on it either: that is an open
+// file for enemy rooks, pointed at the king.
+constexpr int DEF_SHIELD[4] = {12, 6, 10, 15};  // near, far, semi-open, open
+
+// The attack: every enemy knight, bishop, rook and queen that reaches the
+// squares around the king adds weight for each of those squares. One
+// attacker is rarely dangerous and several together are, so once there
+// are at least two the penalty grows with the square of the total weight
+// rather than in proportion to it -- the usual shape of a king hunt.
+constexpr int DEF_ATTACK[5] = {2, 2, 3, 5, 30};  // knight, bishop, rook, queen; scale
+constexpr int ATTACK_CAP = 600;
+
 // Files adjacent to each file, and everything ahead of a square on its own
 // and neighbouring files -- the region that must be empty of enemy pawns
 // for a pawn to be passed.
@@ -237,19 +257,36 @@ void pawn_structure(const Position& pos, int& mg, int& eg) {
 int MATERIAL_W[5];
 int PST_W[7][64];  // pawn, knight, bishop, rook, queen, king_mg, king_eg
 int MOB_W[2][4];   // [mg, eg][knight, bishop, rook, queen], per square
+int SHIELD_W[4];   // near, far, semi-open, open
+int ATTACK_W[5];   // knight, bishop, rook, queen weights; then the scale
 
 // Mobility per piece type, middlegame and endgame, from White's point of
 // view. Shared by evaluate() and explain(), like the pawn terms, so the two
 // cannot disagree.
+//
+// The same pass also collects the attack on each king, since it already
+// has every piece's reach in hand: counting attackers costs one more AND
+// per piece rather than a second walk over the board.
 struct MobilityTerms {
     int mg[4] = {0, 0, 0, 0};
     int eg[4] = {0, 0, 0, 0};
+    int attackWeight[COLOR_NB] = {0, 0};  // against that colour's king
+    int attackers[COLOR_NB] = {0, 0};
 };
+
+// The squares around a king, and one more rank towards the enemy, which is
+// where an attack on a castled king actually lands.
+Bitboard king_zone(const Position& pos, Color c) {
+    const Square k = pos.king_square(c);
+    const Bitboard ring = Bitboards::kingAttacks[k] | square_bb(k);
+    return ring | (c == WHITE ? shift(NORTH, ring) : shift(SOUTH, ring));
+}
 
 void mobility(const Position& pos, MobilityTerms& t) {
     const Bitboard occupied = pos.occupancy();
     for (Color c : {WHITE, BLACK}) {
         const int sign = c == WHITE ? 1 : -1;
+        const Bitboard theirZone = king_zone(pos, ~c);
         const Bitboard theirPawns = pos.pieces(~c, PAWN);
         const Bitboard pawnGuarded = c == WHITE
             ? shift(SOUTH_EAST, theirPawns) | shift(SOUTH_WEST, theirPawns)
@@ -269,7 +306,47 @@ void mobility(const Position& pos, MobilityTerms& t) {
                 const int beyond = popcount(reach & usable) - MOB_TYPICAL[i];
                 t.mg[i] += sign * MOB_W[0][i] * beyond;
                 t.eg[i] += sign * MOB_W[1][i] * beyond;
+
+                if (const Bitboard hits = reach & theirZone) {
+                    t.attackWeight[~c] += ATTACK_W[i] * popcount(hits);
+                    ++t.attackers[~c];
+                }
             }
+        }
+    }
+}
+
+// Pawn shield and king attack, middlegame only, from White's point of view.
+void king_safety(const Position& pos, const MobilityTerms& m,
+                 int& shieldMg, int& attackMg) {
+    shieldMg = attackMg = 0;
+    for (Color c : {WHITE, BLACK}) {
+        const int sign = c == WHITE ? 1 : -1;
+        const Square k = pos.king_square(c);
+        const int kf = int(k) & 7;
+        const int kr = int(k) >> 3;
+        const int ahead = c == WHITE ? 1 : -1;
+        const Bitboard ours = pos.pieces(c, PAWN);
+        const Bitboard theirs = pos.pieces(~c, PAWN);
+
+        int shield = 0;
+        for (int f = std::max(0, kf - 1); f <= std::min(7, kf + 1); ++f) {
+            const Bitboard onFile = ours & fileMask[f];
+            const int r1 = kr + ahead, r2 = kr + 2 * ahead;
+            if (r1 >= 0 && r1 < 8 && (onFile & square_bb(Square(r1 * 8 + f))))
+                shield += SHIELD_W[0];
+            else if (r2 >= 0 && r2 < 8 && (onFile & square_bb(Square(r2 * 8 + f))))
+                shield += SHIELD_W[1];
+            if (!onFile) {
+                shield -= SHIELD_W[2];
+                if (!(theirs & fileMask[f])) shield -= SHIELD_W[3];
+            }
+        }
+        shieldMg += sign * shield;
+
+        if (m.attackers[c] >= 2) {
+            const int w = m.attackWeight[c];
+            attackMg -= sign * std::min(ATTACK_CAP, w * w * ATTACK_W[4] / 100);
         }
     }
 }
@@ -302,7 +379,10 @@ void ensure_defaults() {
 constexpr int MATERIAL_PARAMS = 5;
 constexpr int PST_PARAMS = PST_COUNT * 64;
 constexpr int MOBILITY_PARAMS = 8;
-constexpr int TOTAL_PARAMS = MATERIAL_PARAMS + PST_PARAMS + MOBILITY_PARAMS;
+constexpr int SHIELD_PARAMS = 4;
+constexpr int ATTACK_PARAMS = 5;
+constexpr int TOTAL_PARAMS = MATERIAL_PARAMS + PST_PARAMS + MOBILITY_PARAMS
+                           + SHIELD_PARAMS + ATTACK_PARAMS;
 
 int mirrored_index(Color c, Square s) {
     const int f = int(s) & 7;
@@ -320,6 +400,8 @@ void reset_weights() {
         std::memcpy(PST_W[t], DEFAULT_PST[t], sizeof(PST_W[t]));
     std::memcpy(MOB_W[0], DEF_MOB_MG, sizeof(MOB_W[0]));
     std::memcpy(MOB_W[1], DEF_MOB_EG, sizeof(MOB_W[1]));
+    std::memcpy(SHIELD_W, DEF_SHIELD, sizeof(SHIELD_W));
+    std::memcpy(ATTACK_W, DEF_ATTACK, sizeof(ATTACK_W));
     weightsInitialised = true;
 }
 
@@ -331,14 +413,19 @@ int& param(int index) {
     const int rest = index - MATERIAL_PARAMS;
     if (rest < PST_PARAMS) return PST_W[rest / 64][rest % 64];
     const int mob = rest - PST_PARAMS;
-    return MOB_W[mob / 4][mob % 4];
+    if (mob < MOBILITY_PARAMS) return MOB_W[mob / 4][mob % 4];
+    const int king = mob - MOBILITY_PARAMS;
+    if (king < SHIELD_PARAMS) return SHIELD_W[king];
+    return ATTACK_W[king - SHIELD_PARAMS];
 }
 
 const char* param_group(int index) {
     if (index < MATERIAL_PARAMS) return "material";
     const int rest = index - MATERIAL_PARAMS;
     if (rest < PST_PARAMS) return GROUP_NAMES[rest / 64];
-    return rest - PST_PARAMS < 4 ? "mobility_mg" : "mobility_eg";
+    const int mob = rest - PST_PARAMS;
+    if (mob < MOBILITY_PARAMS) return mob < 4 ? "mobility_mg" : "mobility_eg";
+    return mob - MOBILITY_PARAMS < SHIELD_PARAMS ? "king_shield" : "king_attack";
 }
 
 bool save_weights(const std::string& path) {
@@ -358,6 +445,10 @@ bool save_weights(const std::string& path) {
     for (int i = 0; i < 4; ++i) out << ' ' << MOB_W[0][i];
     out << "\nmobility_eg";
     for (int i = 0; i < 4; ++i) out << ' ' << MOB_W[1][i];
+    out << "\nking_shield";
+    for (int i = 0; i < SHIELD_PARAMS; ++i) out << ' ' << SHIELD_W[i];
+    out << "\nking_attack";
+    for (int i = 0; i < ATTACK_PARAMS; ++i) out << ' ' << ATTACK_W[i];
     out << '\n';
     return bool(out);
 }
@@ -378,6 +469,9 @@ bool load_weights(const std::string& path) {
     int mob[2][4];
     std::memcpy(mob[0], DEF_MOB_MG, sizeof(mob[0]));
     std::memcpy(mob[1], DEF_MOB_EG, sizeof(mob[1]));
+    int shieldW[SHIELD_PARAMS], attackW[ATTACK_PARAMS];
+    std::memcpy(shieldW, DEF_SHIELD, sizeof(shieldW));
+    std::memcpy(attackW, DEF_ATTACK, sizeof(attackW));
 
     std::string line;
     while (std::getline(in, line)) {
@@ -397,6 +491,16 @@ bool load_weights(const std::string& path) {
                 if (!(iss >> row[i])) return false;
             continue;
         }
+        if (name == "king_shield") {
+            for (int i = 0; i < SHIELD_PARAMS; ++i)
+                if (!(iss >> shieldW[i])) return false;
+            continue;
+        }
+        if (name == "king_attack") {
+            for (int i = 0; i < ATTACK_PARAMS; ++i)
+                if (!(iss >> attackW[i])) return false;
+            continue;
+        }
         int table = -1;
         for (int t = 0; t < PST_COUNT; ++t)
             if (name == GROUP_NAMES[t]) table = t;
@@ -409,6 +513,8 @@ bool load_weights(const std::string& path) {
     for (int t = 0; t < PST_COUNT; ++t)
         std::memcpy(PST_W[t], pst[t], sizeof(PST_W[t]));
     std::memcpy(MOB_W, mob, sizeof(MOB_W));
+    std::memcpy(SHIELD_W, shieldW, sizeof(SHIELD_W));
+    std::memcpy(ATTACK_W, attackW, sizeof(ATTACK_W));
     weightsInitialised = true;
     init_eval();
     return true;
@@ -483,6 +589,10 @@ int evaluate(const Position& pos) {
         mgScore += mob.mg[i];
         egScore += mob.eg[i];
     }
+
+    int shieldMg, attackMg;
+    king_safety(pos, mob, shieldMg, attackMg);
+    mgScore += shieldMg + attackMg;
 
     score += (mgScore * phase + egScore * (PHASE_MAX - phase)) / PHASE_MAX;
 
@@ -612,6 +722,17 @@ Breakdown explain(const Position& pos) {
     mobility(pos, mob);
     for (int i = 0; i < 4; ++i)
         blend(MOBILITY_NAME[i], mob.mg[i], mob.eg[i], "");
+
+    int shieldMg, attackMg;
+    king_safety(pos, mob, shieldMg, attackMg);
+    blend("king.shield", shieldMg, 0, "");
+    std::string attackOn;
+    for (Color c : {WHITE, BLACK})
+        if (mob.attackers[c] >= 2) {
+            if (!attackOn.empty()) attackOn += ' ';
+            attackOn += c == WHITE ? "white" : "black";
+        }
+    blend("king.attack", attackMg, 0, attackOn);
 
     // evaluate() tapers the *sum*, once. Tapering each term on its own and
     // adding them up truncates several times instead, so the two differ by
