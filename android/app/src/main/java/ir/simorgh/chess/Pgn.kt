@@ -7,6 +7,11 @@ import java.util.Calendar
  * formatting. Reading only extracts the moves as written; which move each
  * one is, and whether it is legal at all, the engine decides from its `san`
  * list for each position, so this app still implements no chess rules.
+ *
+ * Every brace and bracket in the patterns below is escaped, even where
+ * desktop Java would let it pass: Android compiles regexes with ICU, which
+ * rejects an unescaped `}` -- the first version of this file crashed on
+ * import because of exactly that.
  */
 object Pgn {
 
@@ -62,13 +67,13 @@ object Pgn {
 
     /** The moves of the first game in `text`, as written. */
     fun readMoves(text: String): Read {
-        if (Regex("""\[\s*SetUp\s+"1"\s*]""", RegexOption.IGNORE_CASE).containsMatchIn(text) ||
+        if (Regex("""\[\s*SetUp\s+"1"\s*\]""", RegexOption.IGNORE_CASE).containsMatchIn(text) ||
             Regex("""\[\s*FEN\s+"""", RegexOption.IGNORE_CASE).containsMatchIn(text)) return Read.SetUp
 
         var body = text.lines()
-            .filterNot { Regex("""^\s*\[.*]\s*$""").matches(it) }   // tag pairs
+            .filterNot { Regex("""^\s*\[.*\]\s*$""").matches(it) }   // tag pairs
             .joinToString(" ") { it.replace(Regex(";.*$"), "") }   // rest-of-line comments
-            .replace(Regex("""\{[^}]*}"""), " ")                    // brace comments
+            .replace(Regex("""\{[^\}]*\}"""), " ")                    // brace comments
             .replace(Regex("""\$\d+"""), " ")                       // annotation glyphs
 
         // Variations nest, so strip them with a depth count, not a regex.

@@ -300,7 +300,9 @@ fun SimorghApp() {
                                 .primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString()
                             if (clip.isNullOrBlank()) game.notice = S.clipboardEmpty
                             else scope.launch {
-                                val err = game.importPgn(clip)
+                                // Whatever goes wrong reading someone's PGN is a
+                                // message, never a crash.
+                                val err = try { game.importPgn(clip) } catch (e: Exception) { e.message ?: e.toString() }
                                 game.notice = pgnMessage(err, S)
                                 if (err == null) { flipped = game.playerColour == "b"; showSettings = false }
                             }
