@@ -1,4 +1,5 @@
-import type { GameState, EngineInfo } from "./types";
+import type { GameState, EngineInfo, Explain } from "./types";
+import { parseAnalysis, type Analysis } from "../coach";
 import {
   parseFen, parseLegal, parseStatus, parseExplain, parseInfo,
   parseSan, parseOpening, parseBook,
@@ -158,6 +159,19 @@ export class Engine {
       "book", (l) => l === "book end" || l === "book none");
     const book = parseBook(bookLines, status.stm);
     return { fen, legal, san, status, moves: [...moves], explain, opening, book };
+  }
+
+  /** A full-strength judgement of the position after `moves`, for the coach. */
+  async analyse(moves: string[], movetime = 250): Promise<Analysis | null> {
+    this.setPosition(moves);
+    const lines = await this.run(`analyse movetime ${movetime}`, (l) => l.startsWith("analysis"));
+    return parseAnalysis(lines[lines.length - 1] ?? "");
+  }
+
+  /** The evaluation breakdown of the position after `moves`. */
+  async explainAt(moves: string[]): Promise<Explain | null> {
+    this.setPosition(moves);
+    return parseExplain(await this.run("explain", (l) => l.startsWith("actual")));
   }
 
   /** UCI -> SAN for every legal move after `moves`; for reading PGN. */

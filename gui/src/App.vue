@@ -4,6 +4,8 @@ import ChessBoard from "./components/ChessBoard.vue";
 import ExplainPanel from "./components/ExplainPanel.vue";
 import OpeningExplorer from "./components/OpeningExplorer.vue";
 import LessonView from "./components/LessonView.vue";
+import CoachCard from "./components/CoachCard.vue";
+import { explainWhy, glyph, judge, type MoveReview } from "./coach";
 import { Engine } from "./engine/engine";
 import type { GameState, Color, EngineInfo } from "./engine/types";
 import { fenToBoard, FILES } from "./engine/protocol";
@@ -30,7 +32,36 @@ const moves = ref<string[]>([]);
 // The same moves in SAN, for the move list. Each is looked up in the
 // position it was played from, which is the only place SAN is defined.
 const sanMoves = ref<string[]>([]);
-const tab = ref<"eval" | "explorer">("eval");
+const tab = ref<"eval" | "explorer" | "coach">("eval");
+
+// ---- coach: every move of the player's, judged as it is played
+function savedCoach(): boolean {
+  try {
+    return localStorage.getItem("simorgh.coach") !== "off";
+  } catch {
+    return true;
+  }
+}
+const coachOn = ref(savedCoach());
+function setCoach(on: boolean) {
+  coachOn.value = on;
+  try {
+    localStorage.setItem("simorgh.coach", on ? "on" : "off");
+  } catch {
+    /* the choice just is not remembered */
+  }
+}
+const coaching = ref(false);
+const reviews = ref<Record<number, MoveReview>>({});
+const lastReview = computed<MoveReview | null>(() => {
+  const plies = Object.keys(reviews.value).map(Number).filter((p) => p < moves.value.length);
+  return plies.length ? reviews.value[Math.max(...plies)] : null;
+});
+function dropReviewsFrom(ply: number) {
+  const kept: Record<number, MoveReview> = {};
+  for (const [k, v] of Object.entries(reviews.value)) if (Number(k) < ply) kept[Number(k)] = v;
+  reviews.value = kept;
+}
 const mode = ref<"play" | "lessons">("play");
 const state = ref<GameState | null>(null);
 const thinking = ref(false);
@@ -158,7 +189,7 @@ function push(uci: string) {
 }
 
 const canMove = computed(
-  () => !!state.value && !thinking.value && !gameOver.value && stm.value === playerColor.value
+  () => !!state.value && !thinking.value && !coaching.value && !gameOver.value && stm.value === playerColor.value
 );
 
 async function applyStrength() {
@@ -196,17 +227,42 @@ async function engineMoveIfNeeded() {
 }
 
 async function onMove(uci: string) {
-  if (thinking.value || gameOver.value) return;
+  if (thinking.value || coaching.value || gameOver.value) return;
   clockStop(playerColor.value);
+  const line = [...moves.value];
+  const sansBefore = state.value?.san ?? new Map<string, string>();
   push(uci);
   await refresh();
   saveGame();
+  if (coachOn.value) await coachMove(line, uci, sansBefore);
   await engineMoveIfNeeded();
+}
+
+// Runs between the player's move and the engine's reply, while neither
+// clock is running, so judging a move costs nobody time.
+async function coachMove(line: string[], uci: string, sansBefore: Map<string, string>) {
+  coaching.value = true;
+  try {
+    const before = await engine.analyse(line);
+    if (!before) return;
+    const ended = !!state.value && state.value.status.legal === 0;
+    const after = ended ? null : await engine.analyse([...line, uci]);
+    const end = ended ? (state.value!.status.incheck ? 10000 : 0) : null;
+    const replySan = after ? state.value?.san.get(after.best) ?? after.best : null;
+    const r = judge(line.length, uci, sansBefore.get(uci) ?? uci,
+      sansBefore.get(before.best) ?? before.best, replySan, before, after, end);
+    if (r.verdict === "inaccuracy" || r.verdict === "mistake" || r.verdict === "blunder")
+      r.why = await explainWhy(engine, line, r);
+    reviews.value = { ...reviews.value, [r.ply]: r };
+  } finally {
+    coaching.value = false;
+  }
 }
 
 async function newGame() {
   moves.value = [];
   sanMoves.value = [];
+  reviews.value = {};
   resetClock();
   await engine.newGame();
   await applyStrength();
@@ -244,6 +300,7 @@ async function undo() {
     moves.value.pop();
     sanMoves.value.pop();
   }
+  dropReviewsFrom(moves.value.length);
   await refresh();
   saveGame();
 }
@@ -263,6 +320,7 @@ async function continueFrom(g: { moves: string[]; sans: string[]; side: Color })
   orientation.value = g.side;
   moves.value = [...g.moves];
   sanMoves.value = [...g.sans];
+  reviews.value = {};
   tcId.value = "none";
   resetClock();
   await engine.newGame();
@@ -282,6 +340,7 @@ interface SavedGame {
   tc: string;
   remain: Record<Color, number>;
   flagged: Color | null;
+  reviews?: Record<number, MoveReview>;
 }
 function saveGame() {
   // A running clock is saved as it stands now; it resumes on load.
@@ -289,6 +348,7 @@ function saveGame() {
   const g: SavedGame = {
     moves: moves.value, sans: sanMoves.value, player: playerColor.value,
     strength: strength.value, tc: tcId.value, remain: r, flagged: flagged.value,
+    reviews: reviews.value,
   };
   try {
     localStorage.setItem(GAME_KEY, JSON.stringify(g));
@@ -370,6 +430,7 @@ async function importPgn() {
   // Carry on from the imported position, playing the side to move.
   moves.value = line;
   sanMoves.value = sans;
+  reviews.value = {};
   tcId.value = "none";
   resetClock();
   playerColor.value = line.length % 2 === 0 ? "w" : "b";
@@ -386,9 +447,12 @@ function toggleLang() {
 
 // paired move list
 const movePairs = computed(() => {
-  const out: { n: number; w: string; b: string }[] = [];
+  const out: { n: number; w: string; b: string; wv?: string; bv?: string }[] = [];
   for (let i = 0; i < moves.value.length; i += 2)
-    out.push({ n: i / 2 + 1, w: sanMoves.value[i], b: sanMoves.value[i + 1] ?? "" });
+    out.push({
+      n: i / 2 + 1, w: sanMoves.value[i], b: sanMoves.value[i + 1] ?? "",
+      wv: reviews.value[i]?.verdict, bv: reviews.value[i + 1]?.verdict,
+    });
   return out;
 });
 
@@ -406,6 +470,7 @@ onMounted(async () => {
       remain.w = saved.remain?.w ?? tc.value.base;
       remain.b = saved.remain?.b ?? tc.value.base;
       flagged.value = saved.flagged ?? null;
+      reviews.value = saved.reviews ?? {};
     } else {
       resetClock();
     }
@@ -483,6 +548,14 @@ onMounted(async () => {
         </div>
 
         <div class="group">
+          <div class="group-label">{{ S.coach }}</div>
+          <div class="seg">
+            <button :class="{ on: coachOn }" @click="setCoach(true)">{{ S.on }}</button>
+            <button :class="{ on: !coachOn }" @click="setCoach(false)">{{ S.off }}</button>
+          </div>
+        </div>
+
+        <div class="group">
           <div class="group-label">{{ S.theme }}</div>
           <div class="themes">
             <button
@@ -549,6 +622,14 @@ onMounted(async () => {
               <template v-if="info.scoreCp != null">· {{ (info.scoreCp / 100).toFixed(2) }}</template>
             </span>
           </div>
+          <button v-if="coaching" class="coach-strip">{{ S.coachThinking }}</button>
+          <button v-else-if="coachOn && lastReview" class="coach-strip" :class="lastReview.verdict" @click="tab = 'coach'">
+            <b dir="ltr">{{ lastReview.san }}{{ glyph(lastReview.verdict) }}</b>
+            <span class="cs-verdict">{{ S[`verdict_${lastReview.verdict}`] }}</span>
+            <template v-if="lastReview.verdict !== 'best' && lastReview.verdict !== 'good'">
+              · {{ S.coachBetter }} <b dir="ltr">{{ lastReview.bestSan }}</b>
+            </template>
+          </button>
           <div v-if="state" class="opening-strip">
             <template v-if="moves.length === 0">
               <span class="op-main">{{ S.startPos }}</span>
@@ -574,16 +655,22 @@ onMounted(async () => {
               {{ S.tabExplorer }}
               <span v-if="state?.book.length" class="badge">{{ state.book.length }}</span>
             </button>
+            <button :class="{ on: tab === 'coach' }" @click="tab = 'coach'">{{ S.tabCoach }}</button>
           </div>
           <div class="tab-body">
             <ExplainPanel v-if="tab === 'eval'" :explain="state?.explain ?? null" :lang="lang" />
             <OpeningExplorer
-              v-else
+              v-else-if="tab === 'explorer'"
               :book="state?.book ?? []"
               :lang="lang"
               :interactive="canMove"
               @play="onMove"
             />
+            <div v-else class="coach-tab">
+              <h3>{{ S.coachTitle }}</h3>
+              <p class="coach-hint">{{ coachOn ? S.coachHint : S.coachOffHint }}</p>
+              <CoachCard :review="lastReview" :lang="lang" :pending="coaching" />
+            </div>
           </div>
         </div>
         <div class="moves-box">
@@ -593,8 +680,8 @@ onMounted(async () => {
               <tbody>
                 <tr v-for="p in movePairs" :key="p.n">
                   <td class="mn">{{ p.n }}.</td>
-                  <td class="mv" :class="{ cur: p.n * 2 - 1 === moves.length }">{{ p.w }}</td>
-                  <td class="mv" :class="{ cur: p.n * 2 === moves.length }">{{ p.b }}</td>
+                  <td class="mv" :class="{ cur: p.n * 2 - 1 === moves.length }"><span dir="ltr">{{ p.w }}<span class="glyph" :class="p.wv">{{ glyph(p.wv as any) }}</span></span></td>
+                  <td class="mv" :class="{ cur: p.n * 2 === moves.length }"><span dir="ltr">{{ p.b }}<span class="glyph" :class="p.bv">{{ glyph(p.bv as any) }}</span></span></td>
                 </tr>
               </tbody>
             </table>
@@ -992,6 +1079,52 @@ table {
 }
 .clock-side.w { background: #eef1f4; }
 .clock-side.b { background: #262c34; }
+.coach-strip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  font-size: 13px;
+  color: var(--fg-dim);
+  text-align: start;
+  cursor: pointer;
+}
+.coach-strip b {
+  color: var(--fg);
+  font-family: "SF Mono", "Cascadia Code", monospace;
+}
+.coach-strip.best { border-color: #3aa76d; }
+.coach-strip.best .cs-verdict { color: #3aa76d; }
+.coach-strip.inaccuracy { border-color: #d6b23a; }
+.coach-strip.inaccuracy .cs-verdict { color: #d6b23a; }
+.coach-strip.mistake { border-color: #e08a36; }
+.coach-strip.mistake .cs-verdict { color: #e08a36; }
+.coach-strip.blunder { border-color: #e0534a; }
+.coach-strip.blunder .cs-verdict { color: #e0534a; }
+.cs-verdict {
+  font-weight: 700;
+}
+.glyph {
+  margin-inline-start: 1px;
+  font-weight: 800;
+}
+.glyph.inaccuracy { color: #d6b23a; }
+.glyph.mistake { color: #e08a36; }
+.glyph.blunder { color: #e0534a; }
+.coach-tab h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.coach-hint {
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
 .notice {
   font-size: 12px;
   color: var(--ok);
