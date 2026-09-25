@@ -159,9 +159,10 @@ class Engine(private val context: Context) {
         }
     }
 
-    private fun position(moves: List<String>) {
-        send(if (moves.isEmpty()) "position startpos"
-             else "position startpos moves " + moves.joinToString(" "))
+    /** `fen` is where the moves start from; the initial position if null. */
+    private fun position(moves: List<String>, fen: String? = null) {
+        val start = if (fen == null) "position startpos" else "position fen $fen"
+        send(if (moves.isEmpty()) start else "$start moves " + moves.joinToString(" "))
     }
 
     // -------------------------------------------------------------- state
@@ -171,8 +172,8 @@ class Engine(private val context: Context) {
      * The breakdown rides along so the explanation and the board can never
      * be showing different positions.
      */
-    suspend fun refresh(moves: List<String>): State = exclusive {
-        position(moves)
+    suspend fun refresh(moves: List<String>, startFen: String? = null): State = exclusive {
+        position(moves, startFen)
 
         send("d")
         var fen = ""
@@ -341,8 +342,8 @@ class Engine(private val context: Context) {
     fun stopSearch() = send("stop")
 
     /** A full-strength judgement of the position after `moves`, for the coach. */
-    suspend fun analyse(moves: List<String>, movetimeMs: Int = 250): Coach.Analysis? = exclusive {
-        position(moves)
+    suspend fun analyse(moves: List<String>, movetimeMs: Int = 250, startFen: String? = null): Coach.Analysis? = exclusive {
+        position(moves, startFen)
         send("analyse movetime $movetimeMs")
         Coach.parse(readUntil("analysis"))
     }

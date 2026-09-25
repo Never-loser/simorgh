@@ -122,9 +122,18 @@ fun LessonsScreen(
 ) {
     val context = LocalContext.current
     val book = remember { LessonBook.load(context) }
+    val endgames = remember { EndgameBook.load(context) }
+    var tab by remember { mutableStateOf(0) }      // openings, endgames, puzzles
     var open by remember { mutableStateOf<Lesson?>(null) }
+    var openEndgame by remember { mutableStateOf<Endgame?>(null) }
+    val inside = open != null || openEndgame != null
+    fun back() = when {
+        open != null -> open = null
+        openEndgame != null -> openEndgame = null
+        else -> onBack()
+    }
 
-    BackHandler { if (open != null) open = null else onBack() }
+    BackHandler { back() }
 
     Column(Modifier.fillMaxSize().background(Ink.Bg)) {
         Row(
@@ -133,18 +142,38 @@ fun LessonsScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                if (open == null) S.backToGame else S.allLessons, color = Ink.FgDim, fontSize = 12.sp,
+                if (inside) S.allLessons else S.backToGame, color = Ink.FgDim, fontSize = 12.sp,
                 modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(Ink.Surface2)
                     .border(1.dp, Ink.Border, RoundedCornerShape(16.dp))
-                    .clickable { if (open != null) open = null else onBack() }
+                    .clickable { back() }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             )
-            Text(open?.name?.pick(S) ?: S.lessons, color = Ink.Fg, fontSize = 17.sp,
+            Text(open?.name?.pick(S) ?: openEndgame?.name?.pick(S) ?: S.lessons, color = Ink.Fg, fontSize = 17.sp,
                  fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.weight(1f))
         }
+        if (!inside) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(S.learnOpenings, S.learnEndgames, S.learnPuzzles).forEachIndexed { i, label ->
+                    Text(label, color = if (tab == i) Ink.OnAccentDim else Ink.FgDim, fontSize = 13.sp,
+                         fontWeight = if (tab == i) FontWeight.SemiBold else FontWeight.Normal,
+                         modifier = Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
+                             .background(if (tab == i) Ink.AccentDim else Ink.Surface)
+                             .border(1.dp, if (tab == i) Ink.Accent else Ink.Border, RoundedCornerShape(16.dp))
+                             .clickable { tab = i }.padding(vertical = 8.dp),
+                         textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                }
+            }
+        }
         val lesson = open
-        if (lesson == null) LessonList(book, S) { open = it }
-        else LessonPlayer(lesson, engine, S, onContinue)
+        val endgame = openEndgame
+        when {
+            lesson != null -> LessonPlayer(lesson, engine, S, onContinue)
+            endgame != null -> EndgamePlayer(endgame, engine, S)
+            tab == 0 -> LessonList(book, S) { open = it }
+            tab == 1 -> EndgameList(endgames, S) { openEndgame = it }
+            else -> PuzzleScreen(engine, S)
+        }
     }
 }
 

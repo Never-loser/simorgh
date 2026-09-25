@@ -109,7 +109,7 @@ dependencies {
  */
 val stageEngineData by tasks.registering(Copy::class) {
     from(rootProject.projectDir.resolve("../data")) {
-        include("book.txt", "weights.txt", "openings.tsv", "lessons.json")
+        include("book.txt", "weights.txt", "openings.tsv", "lessons.json", "endgames.json", "puzzles.tsv")
     }
     into(layout.projectDirectory.dir("src/main/assets"))
 }
