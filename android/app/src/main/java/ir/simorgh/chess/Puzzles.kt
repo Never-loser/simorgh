@@ -119,8 +119,10 @@ fun PuzzleScreen(engine: Engine, S: Strings) {
     var rating by remember { mutableStateOf(record.rating) }
     var round by remember { mutableStateOf(0) }
 
-    val player = if (puzzle?.fen?.split(' ')?.getOrNull(1) == "w") "b" else "w"
-    val yourTurn = state != null && !busy && !finished && state?.status?.get("stm") == player
+    fun playerNow() = if (puzzle?.fen?.split(' ')?.getOrNull(1) == "w") "b" else "w"
+    fun turnNow() = state != null && !busy && !finished && state?.status?.get("stm") == playerNow()
+    val player = playerNow()
+    val yourTurn = turnNow()
 
     fun pickNext(): Puzzle {
         val seen = record.seen
@@ -164,9 +166,13 @@ fun PuzzleScreen(engine: Engine, S: Strings) {
         busy = false
     }
 
+    // Move handlers must work out whose turn it is when they run, from
+    // the state objects. Compose may hand the board a handler remembered
+    // from an earlier redraw, whose plain values (like yourTurn) are stale:
+    // on a phone that meant every move of the player's was dropped.
     fun onMove(uci: String) {
         val p = puzzle ?: return
-        if (!yourTurn) return
+        if (!turnNow()) return
         hint = emptySet()
         scope.launch {
             val expected = p.moves[step]
@@ -199,7 +205,7 @@ fun PuzzleScreen(engine: Engine, S: Strings) {
             lastMove = puzzle?.let { p -> p.moves.getOrNull(step - 1)?.let { it.substring(0, 2) to it.substring(2, 4) } },
             stm = state?.status?.get("stm") ?: player,
             strings = S,
-            onMove = ::onMove,
+            onMove = { onMove(it) },
             hint = hint,
         )
     }

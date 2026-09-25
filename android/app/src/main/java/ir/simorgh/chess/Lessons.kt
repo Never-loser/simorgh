@@ -234,8 +234,9 @@ private fun LessonPlayer(
     var mistakes by remember(lesson.id) { mutableStateOf(0) }
     var wrongHere by remember(lesson.id) { mutableStateOf(0) }
     var lastRight by remember(lesson.id) { mutableStateOf(false) }
+    fun turnNow() = practice && step < total && (if (step % 2 == 0) "w" else "b") == lesson.side
     val toMove = if (step % 2 == 0) "w" else "b"
-    val yourTurn = practice && step < total && toMove == lesson.side
+    val yourTurn = turnNow()
     val done = practice && step == total
     val ready = shown != null && shown === snaps[step]
     val expected = lesson.moves.getOrNull(step)
@@ -245,8 +246,13 @@ private fun LessonPlayer(
         else -> setOf(expected.uci.substring(0, 2), expected.uci.substring(2, 4))
     }
     fun startPractice() { practice = true; mistakes = 0; wrongHere = 0; lastRight = false; step = 0; flip = false }
+    // Move handlers must work out whose turn it is when they run, from
+    // the state objects. Compose may hand the board a handler remembered
+    // from an earlier redraw, whose plain values (like yourTurn) are stale:
+    // on a phone that meant every move of the player's was dropped.
     fun onPracticeMove(uci: String) {
-        if (!yourTurn || expected == null) return
+        val expected = lesson.moves.getOrNull(step)
+        if (!turnNow() || expected == null) return
         if (uci == expected.uci) { wrongHere = 0; lastRight = true; step += 1 }
         else { wrongHere += 1; mistakes += 1; lastRight = false }   // not applied: the piece goes back
     }

@@ -141,7 +141,8 @@ fun EndgamePlayer(e: Endgame, engine: Engine, S: Strings) {
     var round by remember(e.id) { mutableStateOf(0) }
 
     val playerMoves = (moves.size + 1) / 2
-    val yourTurn = state != null && !thinking && result == null && state?.status?.get("stm") == e.side
+    fun turnNow() = state != null && !thinking && result == null && state?.status?.get("stm") == e.side
+    val yourTurn = turnNow()
 
     LaunchedEffect(e.id, round) {
         moves = emptyList(); hint = emptySet(); result = null
@@ -188,8 +189,12 @@ fun EndgamePlayer(e: Endgame, engine: Engine, S: Strings) {
         }
     }
 
+    // Move handlers must work out whose turn it is when they run, from
+    // the state objects. Compose may hand the board a handler remembered
+    // from an earlier redraw, whose plain values (like yourTurn) are stale:
+    // on a phone that meant every move of the player's was dropped.
     fun onMove(uci: String) {
-        if (!yourTurn) return
+        if (!turnNow()) return
         hint = emptySet()
         scope.launch {
             moves = moves + uci
@@ -219,7 +224,7 @@ fun EndgamePlayer(e: Endgame, engine: Engine, S: Strings) {
             lastMove = moves.lastOrNull()?.let { it.substring(0, 2) to it.substring(2, 4) },
             stm = state?.status?.get("stm") ?: e.side,
             strings = S,
-            onMove = ::onMove,
+            onMove = { onMove(it) },
             hint = hint,
         )
     }
