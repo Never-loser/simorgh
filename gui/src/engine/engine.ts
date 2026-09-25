@@ -140,15 +140,17 @@ export class Engine {
     this.t.send(`setoption name ${name} value ${value}`);
   }
 
-  private setPosition(moves: string[]) {
+  /** `fen` is where the moves start from; the initial position if none. */
+  private setPosition(moves: string[], fen?: string) {
     this.t.send(
-      "position startpos" + (moves.length ? " moves " + moves.join(" ") : "")
+      (fen ? `position fen ${fen}` : "position startpos") +
+        (moves.length ? " moves " + moves.join(" ") : "")
     );
   }
 
   /** Full snapshot for a move list: board, legal moves, status, evaluation. */
-  async snapshot(moves: string[]): Promise<GameState> {
-    this.setPosition(moves);
+  async snapshot(moves: string[], startFen?: string): Promise<GameState> {
+    this.setPosition(moves, startFen);
     const dLines = await this.run("d", (l) => l.startsWith("Key:"));
     const fen = parseFen(dLines);
     const legalLines = await this.run("legal", (l) => l.startsWith("legal"));
@@ -169,21 +171,21 @@ export class Engine {
   }
 
   /** A full-strength judgement of the position after `moves`, for the coach. */
-  async analyse(moves: string[], movetime = 250): Promise<Analysis | null> {
-    this.setPosition(moves);
+  async analyse(moves: string[], movetime = 250, fen?: string): Promise<Analysis | null> {
+    this.setPosition(moves, fen);
     const lines = await this.run(`analyse movetime ${movetime}`, (l) => l.startsWith("analysis"));
     return parseAnalysis(lines[lines.length - 1] ?? "");
   }
 
   /** The evaluation breakdown of the position after `moves`. */
-  async explainAt(moves: string[]): Promise<Explain | null> {
-    this.setPosition(moves);
+  async explainAt(moves: string[], fen?: string): Promise<Explain | null> {
+    this.setPosition(moves, fen);
     return parseExplain(await this.run("explain", (l) => l.startsWith("actual")));
   }
 
   /** UCI -> SAN for every legal move after `moves`; for reading PGN. */
-  async sanMap(moves: string[]): Promise<Map<string, string>> {
-    this.setPosition(moves);
+  async sanMap(moves: string[], fen?: string): Promise<Map<string, string>> {
+    this.setPosition(moves, fen);
     const lines = await this.run("san", (l) => l.startsWith("san"));
     return parseSan(lines[lines.length - 1] ?? "");
   }

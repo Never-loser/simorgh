@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import ChessBoard from "./components/ChessBoard.vue";
 import ExplainPanel from "./components/ExplainPanel.vue";
 import OpeningExplorer from "./components/OpeningExplorer.vue";
-import LessonView from "./components/LessonView.vue";
+import LearnView from "./components/LearnView.vue";
 import CoachCard from "./components/CoachCard.vue";
 import ReviewPanel from "./components/ReviewPanel.vue";
 import { explainWhy, glyph, judge, reviewGame, type GameReview, type MoveReview } from "./coach";
@@ -572,7 +572,7 @@ onMounted(async () => {
       <button class="lang-btn" @click="toggleLang">{{ S.lang }}</button>
     </header>
 
-    <LessonView v-if="mode === 'lessons'" :engine="engine" :lang="lang" @continue="continueFrom" />
+    <LearnView v-if="mode === 'lessons'" :engine="engine" :lang="lang" @continue="continueFrom" />
 
     <main v-else class="layout">
       <!-- left rail -->
